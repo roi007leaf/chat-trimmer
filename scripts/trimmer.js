@@ -312,8 +312,9 @@ export class ChatTrimmer {
             if (!processedMessageIds.has(msg.id)) {
                 const category = this.determineMessageCategory(msg);
                 const displayText = this.formatIndividualDisplay(msg);
-                const icon = displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
-                
+                const icon =
+                    displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+
                 entries.push({
                     id: foundry.utils.randomID(),
                     type: "individual",
@@ -350,8 +351,9 @@ export class ChatTrimmer {
             if (!processedMessageIds.has(msg.id)) {
                 const category = this.determineMessageCategory(msg);
                 const displayText = this.formatIndividualDisplay(msg);
-                const icon = displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
-                
+                const icon =
+                    displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+
                 entries.push({
                     id: foundry.utils.randomID(),
                     type: "individual",
@@ -465,31 +467,39 @@ export class ChatTrimmer {
         // Check message style/type
         const styles = CONST.CHAT_MESSAGE_STYLES || CONST.CHAT_MESSAGE_TYPES;
         const style = msg.style ?? msg.type;
-        
+
         if (style === styles.IC) {
             return "speech";
         }
-        
+
         if (style === styles.EMOTE) {
             return "emotes";
         }
-        
+
         if (style === styles.WHISPER) {
             return "whispers";
         }
 
         // Check content for specific keywords
         const content = MessageParser.stripHTML(msg.content).toLowerCase();
-        
+
         if (content.includes("heal")) {
             return "healing";
         }
-        
-        if (content.includes("item") || content.includes("gold") || content.includes("loot")) {
+
+        if (
+            content.includes("item") ||
+            content.includes("gold") ||
+            content.includes("loot")
+        ) {
             return "items";
         }
-        
-        if (content.includes("xp") || content.includes("level") || content.includes("important")) {
+
+        if (
+            content.includes("xp") ||
+            content.includes("level") ||
+            content.includes("important")
+        ) {
             return "important";
         }
 

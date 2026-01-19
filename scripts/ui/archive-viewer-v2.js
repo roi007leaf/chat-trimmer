@@ -47,28 +47,28 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
     _onRender(context, options) {
         super._onRender(context, options);
-        
+
         // Attach event listeners for select elements
-        const sessionSelect = this.element.querySelector('.archive-select');
-        const filterSelect = this.element.querySelector('.category-filter');
-        const searchInput = this.element.querySelector('.archive-search');
-        
+        const sessionSelect = this.element.querySelector(".archive-select");
+        const filterSelect = this.element.querySelector(".category-filter");
+        const searchInput = this.element.querySelector(".archive-search");
+
         if (sessionSelect) {
-            sessionSelect.addEventListener('change', (e) => {
+            sessionSelect.addEventListener("change", (e) => {
                 this.currentSession = e.target.value;
                 this.render();
             });
         }
-        
+
         if (filterSelect) {
-            filterSelect.addEventListener('change', (e) => {
+            filterSelect.addEventListener("change", (e) => {
                 this.currentFilter = e.target.value;
                 this.render();
             });
         }
-        
+
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            searchInput.addEventListener("input", (e) => {
                 this.searchQuery = e.target.value;
                 clearTimeout(this._searchTimeout);
                 this._searchTimeout = setTimeout(() => {
@@ -88,17 +88,17 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         console.log(`Archive Viewer | Found ${allArchives.length} archives`);
 
         // Format archives for dropdown with proper structure
-        const archives = allArchives.map(archive => ({
+        const archives = allArchives.map((archive) => ({
             id: archive.id,
             label: archive.name,
-            selected: this.currentSession === archive.id
+            selected: this.currentSession === archive.id,
         }));
 
         // Add "All Sessions" option at the beginning
         archives.unshift({
             id: "all",
             label: "All Sessions",
-            selected: this.currentSession === "all"
+            selected: this.currentSession === "all",
         });
 
         // Get current archive
@@ -106,7 +106,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         if (this.currentSession === "all") {
             currentArchive = null;
         } else {
-            currentArchive = allArchives.find(a => a.id === this.currentSession);
+            currentArchive = allArchives.find((a) => a.id === this.currentSession);
             if (!currentArchive && allArchives.length > 0) {
                 // Default to most recent archive
                 currentArchive = allArchives[allArchives.length - 1];
@@ -149,7 +149,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
                 keys: Object.keys(entries[0]),
                 category: entries[0].category,
                 type: entries[0].type,
-                icon: entries[0].icon
+                icon: entries[0].icon,
             });
         }
 
@@ -158,7 +158,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         // Apply filter - check both 'category' and 'type' properties
         if (this.currentFilter !== "all") {
             entries = entries.filter((e) => {
-                const entryCategory = e.category || e.type || 'all';
+                const entryCategory = e.category || e.type || "all";
                 return entryCategory === this.currentFilter;
             });
             console.log(
@@ -170,7 +170,8 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         if (this.searchQuery) {
             const query = this.searchQuery.toLowerCase();
             entries = entries.filter((e) => {
-                const searchText = `${e.displaySummary} ${e.displayText} ${e.content}`.toLowerCase();
+                const searchText =
+                    `${e.displaySummary} ${e.displayText} ${e.content}`.toLowerCase();
                 return searchText.includes(query);
             });
             console.log(
@@ -187,18 +188,15 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         // Calculate compression ratio
         let compressionRatio = 0;
         if (currentArchive) {
-            const originalCount = currentArchive.getFlag(
-                "chat-trimmer",
-                "originalMessageCount",
-            ) || 0;
-            const compressedCount = currentArchive.getFlag(
-                "chat-trimmer",
-                "compressedEntryCount",
-            ) || totalEntries;
-            
+            const originalCount =
+                currentArchive.getFlag("chat-trimmer", "originalMessageCount") || 0;
+            const compressedCount =
+                currentArchive.getFlag("chat-trimmer", "compressedEntryCount") ||
+                totalEntries;
+
             if (originalCount > 0) {
                 compressionRatio = Math.round(
-                    ((originalCount - compressedCount) / originalCount) * 100
+                    ((originalCount - compressedCount) / originalCount) * 100,
                 );
             }
         }
