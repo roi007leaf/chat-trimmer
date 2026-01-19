@@ -1,0 +1,28 @@
+{
+  "id": "chat-trimmer",
+  "title": "Chat Trimmer & Summarizer",
+  "description": "Automatically compress chat history using intelligent pattern recognition. Reduces memory usage while preserving important information in searchable, organized archives. No LLM required!",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Chat Trimmer Development Team"
+    }
+  ],
+  "compatibility": {
+    "minimum": "11",
+    "verified": "13"
+  },
+  "esmodules": ["scripts/main.js"],
+  "styles": ["styles/archive-viewer.css", "styles/settings.css"],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "url": "https://github.com/yourusername/chat-trimmer",
+  "manifest": "https://github.com/yourusername/chat-trimmer/releases/latest/download/module.json",
+  "download": "https://github.com/yourusername/chat-trimmer/releases/latest/download/chat-trimmer.zip",
+  "license": "MIT"
+}

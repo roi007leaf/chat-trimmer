@@ -1,0 +1,86 @@
+/* Chat Trimmer - Settings Styles */
+
+.chat-trimmer-settings {
+  padding: 10px;
+}
+
+.setting-group {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid #7a7971;
+  border-radius: 5px;
+}
+
+.setting-group h3 {
+  margin: 0 0 15px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #7a7971;
+  font-size: 16px;
+  color: #f0f0e0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(122, 121, 113, 0.3);
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.setting-label strong {
+  font-size: 14px;
+}
+
+.setting-label .hint {
+  font-size: 11px;
+  color: #999;
+  font-style: italic;
+}
+
+.setting-control {
+  flex: 0 0 auto;
+}
+
+/* Chat Log Buttons */
+#chat-controls .chat-trimmer-controls {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid #7a7971;
+}
+
+#chat-controls .chat-trimmer-btn {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid #7a7971;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #f0f0e0;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+#chat-controls .chat-trimmer-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: #9f9e9a;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+#chat-controls .chat-trimmer-btn i {
+  margin-right: 5px;
+}
