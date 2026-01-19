@@ -1,0 +1,132 @@
+<div class="chat-trimmer-viewer">
+  <div class="archive-controls">
+    <!-- Session Selector -->
+    <div class="control-row">
+      <label>{{localize "CHATTRIMMER.ArchiveViewer.Session"}}:</label>
+      <select id="archive-session-select">
+        <option value="current" {{#if (eq currentSession "current")}}selected{{/if}}>
+          Current Session
+        </option>
+        <option value="all" {{#if (eq currentSession "all")}}selected{{/if}}>
+          All Sessions
+        </option>
+        {{#each archives}}
+          <option value="{{getFlag 'chat-trimmer' 'sessionNumber'}}" 
+                  {{#if (eq ../currentSession (getFlag 'chat-trimmer' 'sessionNumber'))}}selected{{/if}}>
+            Session {{getFlag 'chat-trimmer' 'sessionNumber'}}
+          </option>
+        {{/each}}
+      </select>
+    </div>
+    
+    <!-- Filter Buttons -->
+    <div class="control-row">
+      <label>{{localize "CHATTRIMMER.ArchiveViewer.Filter"}}:</label>
+      <div class="filter-buttons">
+        <button class="filter-button {{#if (eq currentFilter 'all')}}active{{/if}}" data-filter="all">
+          {{localize "CHATTRIMMER.ArchiveViewer.All"}}
+        </button>
+        <button class="filter-button {{#if (eq currentFilter 'combat')}}active{{/if}}" data-filter="combat">
+          ⚔️ {{localize "CHATTRIMMER.ArchiveViewer.Combat"}}
+        </button>
+        <button class="filter-button {{#if (eq currentFilter 'dialogue')}}active{{/if}}" data-filter="dialogue">
+          💬 {{localize "CHATTRIMMER.ArchiveViewer.Dialogue"}}
+        </button>
+        <button class="filter-button {{#if (eq currentFilter 'skill_checks')}}active{{/if}}" data-filter="skill_checks">
+          🔍 {{localize "CHATTRIMMER.ArchiveViewer.Rolls"}}
+        </button>
+        <button class="filter-button {{#if (eq currentFilter 'item_transfer')}}active{{/if}}" data-filter="item_transfer">
+          📦 {{localize "CHATTRIMMER.ArchiveViewer.Items"}}
+        </button>
+      </div>
+    </div>
+    
+    <!-- Search -->
+    <div class="control-row">
+      <label>{{localize "CHATTRIMMER.ArchiveViewer.Search"}}:</label>
+      <input type="text" id="archive-search" value="{{searchQuery}}" placeholder="Search...">
+    </div>
+  </div>
+  
+  <!-- Statistics Panel -->
+  {{#if statistics}}
+  <div class="archive-statistics">
+    <h3>📊 Session Statistics</h3>
+    <div class="stat-grid">
+      <div class="stat-item">
+        <span class="stat-label">Original Messages:</span>
+        <span class="stat-value">{{statistics.originalCount}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Compressed Entries:</span>
+        <span class="stat-value">{{statistics.compressedCount}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Compression Ratio:</span>
+        <span class="stat-value">{{statistics.compressionRatio}}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Combats:</span>
+        <span class="stat-value">{{statistics.totalCombats}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Critical Hits:</span>
+        <span class="stat-value">{{statistics.criticalHits}}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Total Rolls:</span>
+        <span class="stat-value">{{statistics.totalRolls}}</span>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+  
+  <!-- Archive Entries -->
+  {{#if hasEntries}}
+  <div class="archive-entries">
+    {{#each entries}}
+    <div class="archive-entry" data-entry-id="{{id}}">
+      <div class="entry-header">
+        <div class="entry-info">
+          <div class="entry-title">{{displayText}}</div>
+          <div class="entry-meta">
+            {{#if sessionNumber}}Session {{sessionNumber}} | {{/if}}
+            {{formatTime timestamp}} | {{originalMessageIds.length}} messages
+          </div>
+        </div>
+        <div class="entry-actions">
+          <button class="view-original-btn" title="{{localize 'CHATTRIMMER.Buttons.ViewOriginal'}}">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="expand-btn">
+            {{#if expanded}}
+              <i class="fas fa-chevron-up"></i>
+            {{else}}
+              <i class="fas fa-chevron-down"></i>
+            {{/if}}
+          </button>
+        </div>
+      </div>
+      
+      <div class="entry-content {{#unless expanded}}collapsed{{/unless}}">
+        {{#if (eq type "combat")}}
+          {{> combatEntry summary=summary}}
+        {{else if (eq type "dialogue")}}
+          {{> dialogueEntry summary=summary}}
+        {{else if (eq type "skill_checks")}}
+          {{> skillCheckEntry summary=summary}}
+        {{else}}
+          <div class="entry-section">
+            <pre>{{json summary 2}}</pre>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    {{/each}}
+  </div>
+  {{else}}
+  <div class="no-entries">
+    <p>No entries found matching your criteria.</p>
+  </div>
+  {{/if}}
+</div>

@@ -1,0 +1,64 @@
+<!-- Combat Entry Partial -->
+<div class="combat-entry">
+  <div class="entry-section">
+    <h4>Location & Duration</h4>
+    <ul>
+      <li><strong>Location:</strong> {{summary.location}}</li>
+      <li><strong>Duration:</strong> {{summary.duration}}</li>
+      <li><strong>Outcome:</strong> {{summary.outcome}}</li>
+    </ul>
+  </div>
+  
+  {{#if summary.participants}}
+  <div class="entry-section">
+    <h4>Participants</h4>
+    <ul>
+      <li><strong>Allies:</strong> {{join summary.participants.allies ", "}}</li>
+      <li><strong>Enemies:</strong> {{join summary.participants.enemies ", "}}</li>
+    </ul>
+  </div>
+  {{/if}}
+  
+  {{#if summary.keyMoments}}
+  <div class="entry-section">
+    <h4>Key Moments</h4>
+    <ul>
+      {{#each summary.keyMoments}}
+      <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  </div>
+  {{/if}}
+  
+  {{#if summary.stats}}
+  <div class="entry-section">
+    <h4>Statistics</h4>
+    <ul>
+      <li><strong>Damage Dealt:</strong> {{summary.stats.totalDamageDealt}}</li>
+      <li><strong>Damage Taken:</strong> {{summary.stats.totalDamageTaken}}</li>
+      <li><strong>Critical Hits:</strong> {{summary.stats.criticalHits}}</li>
+    </ul>
+  </div>
+  {{/if}}
+  
+  {{#if summary.rounds}}
+  <div class="entry-section">
+    <h4>Combat Rounds</h4>
+    <div class="combat-rounds">
+      {{#each summary.rounds}}
+      <div class="combat-round">
+        <div class="round-header">Round {{number}}</div>
+        {{#each actions}}
+        <div class="combat-action {{#if hit}}hit{{else}}miss{{/if}} {{#if critical}}critical{{/if}}">
+          • {{actor}} {{action}} {{#if target}}{{target}}{{/if}}
+          {{#if roll}}({{roll}}){{/if}}
+          {{#if damage}}→ {{damage}} damage{{/if}}
+          {{#if critical}}<strong>CRITICAL!</strong>{{/if}}
+        </div>
+        {{/each}}
+      </div>
+      {{/each}}
+    </div>
+  </div>
+  {{/if}}
+</div>

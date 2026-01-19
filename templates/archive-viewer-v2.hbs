@@ -1,0 +1,101 @@
+<div class="chat-archive-viewer">
+    <div class="archive-header">
+        <h2>{{localize "CHATTRIMMER.ArchiveViewer.Title"}}</h2>
+        <select class="archive-select" name="session">
+            {{#each archives}}
+            <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>
+                {{this.label}}
+            </option>
+            {{/each}}
+        </select>
+    </div>
+
+    {{#if currentArchive}}
+    <div class="archive-body">
+        <div class="archive-controls">
+            <div class="filter-group">
+                <label>{{localize "CHATTRIMMER.ArchiveViewer.Filter"}}:</label>
+                <select class="category-filter" name="filter">
+                    <option value="all" {{#if (eq currentFilter "all")}}selected{{/if}}>
+                        {{localize "CHATTRIMMER.Categories.All"}}
+                    </option>
+                    <option value="combat" {{#if (eq currentFilter "combat")}}selected{{/if}}>
+                        ⚔️ {{localize "CHATTRIMMER.Categories.Combat"}}
+                    </option>
+                    <option value="rolls" {{#if (eq currentFilter "rolls")}}selected{{/if}}>
+                        🎲 {{localize "CHATTRIMMER.Categories.Rolls"}}
+                    </option>
+                    <option value="speech" {{#if (eq currentFilter "speech")}}selected{{/if}}>
+                        💬 {{localize "CHATTRIMMER.Categories.Speech"}}
+                    </option>
+                    <option value="emotes" {{#if (eq currentFilter "emotes")}}selected{{/if}}>
+                        ✨ {{localize "CHATTRIMMER.Categories.Emotes"}}
+                    </option>
+                    <option value="whispers" {{#if (eq currentFilter "whispers")}}selected{{/if}}>
+                        💭 {{localize "CHATTRIMMER.Categories.Whispers"}}
+                    </option>
+                    <option value="healing" {{#if (eq currentFilter "healing")}}selected{{/if}}>
+                        ❤️ {{localize "CHATTRIMMER.Categories.Healing"}}
+                    </option>
+                    <option value="items" {{#if (eq currentFilter "items")}}selected{{/if}}>
+                        📦 {{localize "CHATTRIMMER.Categories.Items"}}
+                    </option>
+                    <option value="important" {{#if (eq currentFilter "important")}}selected{{/if}}>
+                        ⭐ {{localize "CHATTRIMMER.Categories.Important"}}
+                    </option>
+                </select>
+            </div>
+
+            <div class="search-group">
+                <input 
+                    type="text" 
+                    class="archive-search" 
+                    placeholder="{{localize 'CHATTRIMMER.ArchiveViewer.Search'}}"
+                    value="{{searchQuery}}"
+                    name="search"
+                />
+            </div>
+        </div>
+
+        <div class="archive-stats">
+            <span>
+                {{localize "CHATTRIMMER.ArchiveViewer.Showing"}} 
+                <strong>{{filteredEntries.length}}</strong> / <strong>{{totalEntries}}</strong>
+            </span>
+            <span>
+                {{localize "CHATTRIMMER.ArchiveViewer.Compression"}}: 
+                <strong>{{compressionRatio}}%</strong>
+            </span>
+        </div>
+
+        <div class="archive-entries">
+            {{#each filteredEntries}}
+            <div class="archive-entry {{this.category}}" data-entry-id="{{this.id}}">
+                <div class="entry-header" data-action="toggleEntry">
+                    <span class="entry-icon">{{this.icon}}</span>
+                    <span class="entry-summary">{{this.displaySummary}}</span>
+                    <span class="entry-timestamp">{{this.timestamp}}</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="entry-content {{#unless this.expanded}}hidden{{/unless}}">
+                    <div class="entry-original">{{{this.content}}}</div>
+                    <div class="entry-actions">
+                        <button class="view-original" data-action="viewOriginal" data-message-id="{{this.id}}">
+                            <i class="fas fa-eye"></i> {{localize "CHATTRIMMER.ArchiveViewer.ViewOriginal"}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {{else}}
+            <div class="no-entries">
+                <p>{{localize "CHATTRIMMER.ArchiveViewer.NoEntries"}}</p>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{else}}
+    <div class="no-archive">
+        <p>{{localize "CHATTRIMMER.ArchiveViewer.NoArchives"}}</p>
+    </div>
+    {{/if}}
+</div>
