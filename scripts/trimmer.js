@@ -26,7 +26,25 @@ export class ChatTrimmer {
 
             // Get messages if not provided
             if (!messages) {
-                messages = game.messages.contents;
+                // Get all messages, sorted by timestamp to ensure correct ordering
+                messages = [...game.messages.contents].sort((a, b) => a.timestamp - b.timestamp);
+            }
+
+            // Apply "Messages to Keep" logic (unless ignored or overridden)
+            const keepCount = game.settings.get("chat-trimmer", "messagesToKeep");
+            if (!options.ignoreKeep && keepCount > 0) {
+                if (messages.length <= keepCount) {
+                    console.log(`Chat Trimmer | Message count (${messages.length}) is within 'Keep' limit (${keepCount}). Skipping trim.`);
+                    return null;
+                }
+
+                const toKeepCount = keepCount;
+                const toTrimCount = messages.length - keepCount;
+
+                console.log(`Chat Trimmer | Preserving ${toKeepCount} recent messages, trimming ${toTrimCount} older messages`);
+
+                // Keep the last 'keepCount' messages (do not process or delete them)
+                messages = messages.slice(0, messages.length - keepCount);
             }
 
             console.log(`Chat Trimmer | Processing ${messages.length} messages`);
@@ -200,11 +218,30 @@ export class ChatTrimmer {
 
     /**
      * Check if message is combat-related
+     * Only considers a message as combat if there's an active encounter
      */
     isCombatMessage(msg) {
+        // Strong indicators from flags (always combat-related)
+        if (msg.flags?.core?.initiativeRoll) return true;
+
+        // PF2e specific flags
+        const contextType = msg.flags?.pf2e?.context?.type;
+        if (contextType === "attack-roll" ||
+            contextType === "spell-attack-roll" ||
+            contextType === "saving-throw") {
+            return true;
+        }
+
+        // Check active combat for text-based detection
+        const hasActiveCombat = game.combat?.started || game.combats?.some((c) => c.started);
+
+        if (!hasActiveCombat) {
+            return false;
+        }
+
+        // If there is active combat, check textual content
         const content = msg.content.toLowerCase();
         return (
-            msg.flags?.core?.initiativeRoll ||
             content.includes("attack") ||
             content.includes("damage") ||
             content.includes("saving throw") ||
@@ -295,6 +332,7 @@ export class ChatTrimmer {
                 category: "combat",
                 icon: "⚔️",
                 timestamp: combat.startTime,
+                speaker: "Combat",
                 summary: combat,
                 displayText: this.formatCombatDisplay(combat),
                 displaySummary: this.formatCombatDisplay(combat),
@@ -314,6 +352,8 @@ export class ChatTrimmer {
                 const displayText = this.formatIndividualDisplay(msg);
                 const icon =
                     displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+                const speaker = MessageParser.extractActorName(msg) || "Unknown";
+                const rollData = this.extractRollData(msg);
 
                 entries.push({
                     id: foundry.utils.randomID(),
@@ -321,10 +361,12 @@ export class ChatTrimmer {
                     category: category,
                     icon: icon,
                     timestamp: msg.timestamp,
+                    speaker: speaker,
                     originalMessage: msg.toObject(),
                     displayText: displayText,
                     displaySummary: displayText,
-                    content: msg.content,
+                    content: this.sanitizeContent(msg.content),
+                    rollData: rollData,
                     searchKeywords: MessageParser.extractKeywords(msg.content),
                     originalMessageIds: [msg.id],
                 });
@@ -353,6 +395,8 @@ export class ChatTrimmer {
                 const displayText = this.formatIndividualDisplay(msg);
                 const icon =
                     displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+                const speaker = MessageParser.extractActorName(msg) || "Unknown";
+                const rollData = this.extractRollData(msg);
 
                 entries.push({
                     id: foundry.utils.randomID(),
@@ -360,10 +404,12 @@ export class ChatTrimmer {
                     category: category,
                     icon: icon,
                     timestamp: msg.timestamp,
+                    speaker: speaker,
                     originalMessage: msg.toObject(),
                     displayText: displayText,
                     displaySummary: displayText,
-                    content: msg.content,
+                    content: this.sanitizeContent(msg.content),
+                    rollData: rollData,
                     searchKeywords: MessageParser.extractKeywords(msg.content),
                     originalMessageIds: [msg.id],
                 });
@@ -383,6 +429,170 @@ export class ChatTrimmer {
     }
 
     /**
+     * Extract roll data from message for recreation
+     * @param {ChatMessage} msg - The chat message
+     * @returns {Object|null} Roll data including formulas and labels
+     */
+    extractRollData(msg) {
+        const rollData = {
+            rolls: [],
+            damageButtons: [],
+            flags: msg.flags || {},
+        };
+
+        // Extract roll formulas from the message rolls
+        if (msg.rolls && msg.rolls.length > 0) {
+            for (const roll of msg.rolls) {
+                // Clean up formula - remove damage type labels (e.g., "1d4 + 1 force" -> "1d4 + 1")
+                let formula = roll.formula;
+
+                // Common PF2e damage types that appear after the formula
+                const damageTypes =
+                    /\s+(acid|bludgeoning|cold|electricity|fire|force|mental|negative|piercing|poison|positive|slashing|sonic|untyped|lawful|chaotic|good|evil|precision|persistent)$/i;
+                formula = formula.replace(damageTypes, "");
+
+                rollData.rolls.push({
+                    formula: formula,
+                    flavor: roll.options?.flavor || "",
+                    type: roll.options?.type || "roll",
+                });
+            }
+        }
+
+        // Try to extract damage roll buttons from HTML content
+        if (msg.content) {
+            const temp = document.createElement("div");
+            temp.innerHTML = msg.content;
+
+            // Check for PF2e action buttons (spells, strikes, etc.)
+            const pf2eActionButtons = temp.querySelectorAll(
+                'button[data-action="spell-damage"], button[data-action="strike-damage"], button[data-action="strike-attack"], button[data-action="strike-critical"], button[data-action="damage"], button[data-action="critical"], button[data-action="target-applyDamage"], button[data-action="target-shieldBlock"], button[data-action="apply-damage"], button[data-action="shield-block"], button[data-action="expand-damage-context"]'
+            );
+            if (pf2eActionButtons.length > 0) {
+                console.log(
+                    `Chat Trimmer | Found ${pf2eActionButtons.length} PF2e action buttons`,
+                );
+
+                // For PF2e, we need to store references to recreate the action
+                if (msg.flags?.pf2e?.origin) {
+                    const origin = msg.flags.pf2e.origin;
+
+                    pf2eActionButtons.forEach((btn) => {
+                        const label = btn.textContent?.trim() || "Roll";
+                        const actionType = btn.dataset.action;
+
+                        // Store PF2e-specific data for recreation
+                        rollData.damageButtons.push({
+                            label,
+                            type: "pf2e-action",
+                            action: actionType,
+                            actorUuid: origin.actor || `Actor.${msg.speaker?.actor}`,
+                            itemUuid: origin.uuid,
+                            // Store dataset attributes like index, variant, etc.
+                            dataset: { ...btn.dataset },
+                            // Keep full origin data
+                            pf2eOrigin: origin,
+                        });
+
+                        console.log(
+                            `Chat Trimmer | Stored PF2e action button: ${label} (${actionType})`,
+                        );
+                    });
+                } else {
+                    console.log(`Chat Trimmer | No PF2e origin data found in flags`);
+                }
+            }
+
+            // If no PF2e buttons or no formulas found, try generic button extraction
+            if (rollData.damageButtons.length === 0) {
+                // Look for various button patterns used by different systems
+                const buttonSelectors = [
+                    'button[data-action="damage"]',
+                    'button[data-action="roll-damage"]',
+                    "button.damage-roll",
+                    "button.roll-damage",
+                ];
+
+                // Try each selector
+                for (const selector of buttonSelectors) {
+                    let buttons;
+                    try {
+                        buttons = temp.querySelectorAll(selector);
+                    } catch (e) {
+                        continue;
+                    }
+
+                    buttons.forEach((btn) => {
+                        // Try multiple attributes where formula might be stored
+                        const formula =
+                            btn.dataset.formula ||
+                            btn.getAttribute("data-formula") ||
+                            btn.dataset.damageFormula ||
+                            btn.getAttribute("data-damage-formula");
+
+                        let label = btn.textContent?.trim() || "Roll Damage";
+
+                        // Clean up label (remove extra whitespace and icons)
+                        label = label.replace(/\s+/g, " ").trim();
+
+                        if (formula) {
+                            rollData.damageButtons.push({ formula, label });
+                            console.log(
+                                `Chat Trimmer | Extracted damage button: ${label} = ${formula}`,
+                            );
+                        }
+                    });
+
+                    if (rollData.damageButtons.length > 0) break;
+                }
+            }
+        }
+
+        const hasData =
+            rollData.rolls.length > 0 || rollData.damageButtons.length > 0;
+
+        if (hasData) {
+            console.log(
+                `Chat Trimmer | Roll data for message: ${rollData.rolls.length} rolls, ${rollData.damageButtons.length} damage buttons`,
+            );
+        }
+
+        return hasData ? rollData : null;
+    }
+
+    /**
+     * Sanitize HTML content for archive storage
+     * Removes interactive buttons and scripts that won't function in the archive
+     */
+    sanitizeContent(html) {
+        if (!html) return "";
+
+        // Create a temporary div to parse HTML
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
+
+        // Remove all button elements (they won't work in archives)
+        temp.querySelectorAll("button").forEach((btn) => btn.remove());
+
+        // Remove script tags
+        temp.querySelectorAll("script").forEach((script) => script.remove());
+
+        // Remove inline event handlers
+        temp.querySelectorAll("[onclick], [onload], [onerror]").forEach((el) => {
+            el.removeAttribute("onclick");
+            el.removeAttribute("onload");
+            el.removeAttribute("onerror");
+        });
+
+        // Remove data-action attributes (Foundry click handlers)
+        temp.querySelectorAll("[data-action]").forEach((el) => {
+            el.removeAttribute("data-action");
+        });
+
+        return temp.innerHTML;
+    }
+
+    /**
      * Format combat for display
      */
     formatCombatDisplay(combat) {
@@ -399,21 +609,97 @@ export class ChatTrimmer {
      * Format individual message for display
      */
     formatIndividualDisplay(msg) {
+        // Extract actor/author name
+        const actor = MessageParser.extractActorName(msg);
+
+        // Extract target information from various sources
+        const targetName = this.extractTargetName(msg);
+        const targetSuffix = targetName ? ` → ${targetName}` : "";
+
+        // Check for PF2e strike/attack rolls first
+        if (
+            msg.flags?.pf2e?.context?.type === "attack-roll" ||
+            msg.flags?.pf2e?.context?.type === "strike"
+        ) {
+            const origin = msg.flags.pf2e.origin;
+            const outcome = msg.flags.pf2e.context?.outcome;
+
+            // Extract weapon/action name
+            let actionName = origin?.item?.name || "Strike";
+
+            // Extract outcome (hit/miss/crit)
+            let outcomeText = "";
+            if (outcome === "criticalSuccess") {
+                outcomeText = " [Critical Hit!]";
+            } else if (outcome === "success") {
+                outcomeText = " [Hit]";
+            } else if (outcome === "failure") {
+                outcomeText = " [Miss]";
+            } else if (outcome === "criticalFailure") {
+                outcomeText = " [Critical Miss]";
+            }
+
+            // Get roll total
+            let rollTotal = "";
+            if (msg.rolls && msg.rolls.length > 0) {
+                rollTotal = ` (${msg.rolls[0].total})`;
+            }
+
+            return `⚔️ ${actor}: ${actionName}${targetSuffix}${outcomeText}${rollTotal}`;
+        }
+
+        // Check for PF2e damage rolls
+        if (msg.flags?.pf2e?.context?.type === "damage-roll") {
+            const origin = msg.flags.pf2e.origin;
+            let actionName = origin?.item?.name || "Damage";
+            const outcome = msg.flags.pf2e.context?.outcome;
+            const isCritical = outcome === 'criticalSuccess';
+
+            let rollTotal = "";
+            if (msg.rolls && msg.rolls.length > 0) {
+                rollTotal = ` (${msg.rolls[0].total})`;
+            }
+
+            // Construct label: [Item Name] [Critical] Damage
+            let labelParts = [];
+
+            // Add Item Name if it's not just "Damage"
+            if (actionName.toLowerCase() !== 'damage') {
+                labelParts.push(actionName);
+            }
+
+            // Add Critical/Damage suffix
+            if (isCritical) {
+                labelParts.push("Critical Damage");
+            } else {
+                labelParts.push("Damage");
+            }
+
+            const label = labelParts.join(" ");
+
+            return `⚔️ ${actor}: ${label}${targetSuffix}${rollTotal}`;
+        }
+
+        // Check for PF2e spell casts
+        if (msg.flags?.pf2e?.origin?.type === "spell") {
+            const spellName = msg.flags.pf2e.origin.item?.name || "Spell";
+            return `✨ ${actor}: ${spellName}${targetSuffix}`;
+        }
+
         // Check if it's a roll message
         if (MessageParser.isRoll(msg)) {
             const rollSummary = MessageParser.createRollSummary(msg);
-            return `🎲 ${rollSummary}`;
+            return `🎲 ${actor}: ${rollSummary}${targetSuffix}`;
         }
 
         // Check if it's in-character dialogue
         const styles = CONST.CHAT_MESSAGE_STYLES || CONST.CHAT_MESSAGE_TYPES;
         const style = msg.style ?? msg.type;
         if (style === styles.IC) {
-            const actor = MessageParser.extractActorName(msg);
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `💬 ${actor ? actor + ": " : ""}${preview}`;
+            return `💬 ${actor}${targetSuffix}: ${preview}`;
         }
 
         // Check if it's an emote
@@ -421,7 +707,7 @@ export class ChatTrimmer {
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `✨ ${preview}`;
+            return `✨ ${actor}${targetSuffix} ${preview}`;
         }
 
         // Check if it's OOC
@@ -429,7 +715,7 @@ export class ChatTrimmer {
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `💭 ${preview}`;
+            return `💭 ${actor}: ${preview}`;
         }
 
         // Default: system message or other
@@ -456,12 +742,103 @@ export class ChatTrimmer {
     }
 
     /**
+     * Extract target name from message
+     * @param {ChatMessage} msg - The chat message
+     * @returns {string|null} Target name or null
+     */
+    extractTargetName(msg) {
+        // Check PF2e context for target
+        if (msg.flags?.pf2e?.context?.target) {
+            const targetCtx = msg.flags.pf2e.context.target;
+
+            // 1. Try resolving Token name (most specific,handles aliasing)
+            if (targetCtx.token) {
+                // If it's a full UUID
+                if (targetCtx.token.startsWith('Scene.')) {
+                    // Try sync lookup from canvas if current scene
+                    const parts = targetCtx.token.split('.');
+                    if (parts[1] === canvas.scene?.id) {
+                        const token = canvas.tokens.get(parts[3]);
+                        if (token) return token.name;
+                    }
+                    // If we have FromUuidSync (v11+)
+                    if (typeof fromUuidSync === 'function') {
+                        try {
+                            const doc = fromUuidSync(targetCtx.token);
+                            if (doc) return doc.name;
+                        } catch (e) { }
+                    }
+                } else {
+                    // It might be just an ID on the current canvas
+                    const token = canvas.tokens.get(targetCtx.token);
+                    if (token) return token.name;
+                }
+            }
+
+            // 2. Try resolving Actor name
+            if (targetCtx.actor) {
+                // Handle "Actor.ID" format
+                const actorId = targetCtx.actor.replace('Actor.', '');
+                const actor = game.actors.get(actorId);
+                if (actor) return actor.name;
+
+                // Try finding a token for this actor on canvas as backup
+                const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
+                if (token) return token.name;
+            }
+
+            // If we have an actor ID but couldn't resolve it, we might return the ID as a last resort
+            // But prefer null so regex fallback can try finding a name in text
+            if (targetCtx.actor) {
+                // return targetCtx.actor; // Commented out to allow fallbacks
+            }
+        }
+
+        // Check if target is in the content HTML (common pattern)
+        if (msg.content) {
+            // Look for "Target: ActorName" pattern
+            const targetMatch = msg.content.match(/Target:\s*([^<\n]+)/i);
+            if (targetMatch) {
+                return targetMatch[1].trim();
+            }
+
+            // Look for "vs ActorName" pattern
+            const vsMatch = msg.content.match(
+                /\bvs\.?\s+([A-Z][a-zA-Z\s]+?)(?:\s*\(|<|$)/,
+            );
+            if (vsMatch) {
+                return vsMatch[1].trim();
+            }
+        }
+
+        // Check flavor text
+        if (msg.flavor) {
+            const targetMatch = msg.flavor.match(/Target:\s*([^<\n]+)/i);
+            if (targetMatch) {
+                return targetMatch[1].trim();
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Determine category for a message
      */
     determineMessageCategory(msg) {
+        // Check if it's combat-related first (includes combat rolls)
+        if (this.isCombatMessage(msg)) {
+            return "combat";
+        }
+
         // Check if it's a roll
         if (MessageParser.isRoll(msg)) {
             return "rolls";
+        }
+
+        // Check for whispers (V12+ way - check whisper property instead of style)
+        if (msg.whisper && msg.whisper.length > 0) {
+            return "whispers";
         }
 
         // Check message style/type
@@ -474,10 +851,6 @@ export class ChatTrimmer {
 
         if (style === styles.EMOTE) {
             return "emotes";
-        }
-
-        if (style === styles.WHISPER) {
-            return "whispers";
         }
 
         // Check content for specific keywords

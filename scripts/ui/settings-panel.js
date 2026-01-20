@@ -21,9 +21,23 @@ export class SettingsPanel {
             type: Number,
             default: 500,
             range: {
-                min: 20,
+                min: 0,
+                max: 50,
+                step: 1,
+            },
+        });
+
+        game.settings.register("chat-trimmer", "messagesToKeep", {
+            name: "CHATTRIMMER.Settings.MessagesToKeep",
+            hint: "CHATTRIMMER.Settings.MessagesToKeepHint",
+            scope: "world",
+            config: true,
+            type: Number,
+            default: 10,
+            range: {
+                min: 0,
                 max: 100,
-                step: 10,
+                step: 5,
             },
         });
 
@@ -90,12 +104,49 @@ export class SettingsPanel {
             default: true,
         });
 
+        game.settings.register("chat-trimmer", "use24hTime", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.Use24hTime"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.Use24hTimeHint"),
+            scope: "client",
+            config: true,
+            type: Boolean,
+            default: false,
+        });
+
+        game.settings.register("chat-trimmer", "storageType", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.StorageType"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.StorageTypeHint"),
+            scope: "world",
+            config: true,
+            type: String,
+            choices: {
+                journal: game.i18n.localize("CHATTRIMMER.Settings.StorageJournal"),
+                external: game.i18n.localize("CHATTRIMMER.Settings.StorageExternal"),
+            },
+            default: "external",
+        });
+
         // Internal settings (not shown in config)
         game.settings.register("chat-trimmer", "lastTrimTime", {
             scope: "world",
             config: false,
             type: Number,
             default: 0,
+        });
+
+        game.settings.register("chat-trimmer", "currentSessionName", {
+            scope: "world",
+            config: false,
+            type: String,
+            default: "Session 1",
+        });
+
+
+        game.settings.register("chat-trimmer", "archiveIndex", {
+            scope: "world",
+            config: false,
+            type: Object,
+            default: [],
         });
     }
 }

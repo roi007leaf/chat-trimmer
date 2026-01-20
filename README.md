@@ -53,7 +53,7 @@ A Foundry VTT module that automatically compresses chat history using intelligen
 
 - **Filter by Type**: Combat, Dialogue, Skill Checks, Items
 - **Search**: Full-text search across all archives
-- **Session Selection**: View current session or all sessions
+- **Archive Selection**: View current archive or all archives
 - **Expand Entries**: Click any entry to see detailed breakdown
 - **View Original**: See the original messages that were compressed
 
@@ -63,6 +63,7 @@ A Foundry VTT module that automatically compresses chat history using intelligen
 
 - **Enable Automatic Trimming**: Toggle auto-trim on/off
 - **Message Threshold**: Trim when chat reaches X messages (default: 500)
+- **Messages to Keep**: Number of recent messages to preserve in chat (default: 100)
 - **Time Threshold**: Trim every X hours (default: 2)
 
 #### Compression Settings

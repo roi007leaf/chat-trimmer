@@ -2,6 +2,8 @@
  * Archive Viewer Application (V2)
  * Modern Foundry ApplicationV2 implementation
  */
+import { MessageViewerDialog } from "./dialogs.js";
+
 export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
     foundry.applications.api.ApplicationV2,
 ) {
@@ -36,6 +38,9 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         actions: {
             toggleEntry: ArchiveViewerV2.prototype.onToggleEntry,
             viewOriginal: ArchiveViewerV2.prototype.onViewOriginal,
+            rollButton: ArchiveViewerV2.prototype.onRollButton,
+            deleteCurrentArchive: ArchiveViewerV2.prototype.onDeleteCurrentArchive,
+            deleteAllArchives: ArchiveViewerV2.prototype.onDeleteAllArchives,
         },
     };
 
@@ -68,12 +73,16 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         }
 
         if (searchInput) {
+            // Update state immediately to prevent data loss on other renders
             searchInput.addEventListener("input", (e) => {
                 this.searchQuery = e.target.value;
-                clearTimeout(this._searchTimeout);
-                this._searchTimeout = setTimeout(() => {
+            });
+
+            // Trigger search (render) only on Enter
+            searchInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
                     this.render();
-                }, 300);
+                }
             });
         }
     }
@@ -87,56 +96,111 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         const allArchives = await this.archiveManager.getAllArchives();
         console.log(`Archive Viewer | Found ${allArchives.length} archives`);
 
-        // Format archives for dropdown with proper structure
-        const archives = allArchives.map((archive) => ({
-            id: archive.id,
-            label: archive.name,
-            selected: this.currentSession === archive.id,
-        }));
+        const hasArchives = allArchives.length > 0;
 
-        // Add "All Sessions" option at the beginning
-        archives.unshift({
+        // Group archives by session
+        const sessionGroups = new Map();
+
+        for (const archive of allArchives) {
+            let sName = archive.getFlag("chat-trimmer", "sessionName");
+            if (!sName) {
+                // Fallback for legacy archives or unnamed sessions
+                sName = archive.name;
+            }
+            if (!sessionGroups.has(sName)) {
+                sessionGroups.set(sName, []);
+            }
+            sessionGroups.get(sName).push(archive);
+        }
+
+        // Format sessions for dropdown
+        const archives = []; // This variable name maps to 'archives' in context/template
+
+        // Add "All Sessions" option
+        archives.push({
             id: "all",
             label: "All Sessions",
             selected: this.currentSession === "all",
         });
 
-        // Get current archive
-        let currentArchive;
-        if (this.currentSession === "all") {
-            currentArchive = null;
-        } else {
-            currentArchive = allArchives.find((a) => a.id === this.currentSession);
-            if (!currentArchive && allArchives.length > 0) {
-                // Default to most recent archive
-                currentArchive = allArchives[allArchives.length - 1];
-                this.currentSession = currentArchive.id;
+        for (const [name, list] of sessionGroups) {
+            archives.push({
+                id: name,
+                label: `${name} (${list.length} archives)`,
+                selected: this.currentSession === name,
+            });
+        }
+
+        // Handle default selection
+        if (!this.currentSession || (this.currentSession !== "all" && !sessionGroups.has(this.currentSession))) {
+            if (sessionGroups.size > 0) {
+                // Default to the last session (most recent?)
+                // iterating Map keys yields insertion order. Assuming archives are chronological?
+                // We should probably rely on the session list. Map iteration order is insertion order usually.
+                const methodKeys = Array.from(sessionGroups.keys());
+                this.currentSession = methodKeys[methodKeys.length - 1]; // Last session 
+            } else {
+                this.currentSession = "all";
             }
         }
 
-        // Get entries
+        // Update selection state in dropdown list
+        archives.forEach(a => a.selected = a.id === this.currentSession);
+
+
+        // Get entries based on selection
         let entries = [];
+        this.entryMap = new Map(); // O(1) lookup cache
+
+        let targetArchives = [];
         if (this.currentSession === "all") {
-            console.log("Archive Viewer | Loading entries from all archives");
-            for (const archive of allArchives) {
-                const archiveEntries = archive.getFlag("chat-trimmer", "entries") || [];
-                console.log(
-                    `Archive Viewer | Archive "${archive.name}" has ${archiveEntries.length} entries`,
-                );
-                entries.push(
-                    ...archiveEntries.map((e) => ({
-                        ...e,
-                        sessionNumber: archive.getFlag("chat-trimmer", "sessionNumber"),
-                    })),
-                );
-            }
-        } else if (currentArchive) {
-            entries = currentArchive.getFlag("chat-trimmer", "entries") || [];
-            console.log(
-                `Archive Viewer | Current archive "${currentArchive.name}" has ${entries.length} entries`,
-            );
+            targetArchives = allArchives;
         } else {
-            console.log("Archive Viewer | No current archive selected");
+            targetArchives = sessionGroups.get(this.currentSession) || [];
+        }
+
+        if (targetArchives.length > 0) {
+            console.log(`Archive Viewer | Loading entries from ${targetArchives.length} archives for session '${this.currentSession}'`);
+
+            for (const archive of targetArchives) {
+                const archiveEntries = await this.archiveManager.getArchiveEntries(archive);
+                // We map entries similarly, maybe adding sessionNumber from archive if needed
+                const sNum = archive.getFlag("chat-trimmer", "sessionNumber");
+
+                const mappedEntries = archiveEntries.map((e) => ({
+                    ...e,
+                    sessionNumber: sNum,
+                    archiveName: archive.name, // Track source archive
+                    archiveId: archive.id
+                }));
+                entries.push(...mappedEntries);
+                mappedEntries.forEach(e => this.entryMap.set(e.id, e));
+            }
+            // Sort merged entries by timestamp
+            entries.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            // Insert Headers for Archive boundaries
+            const entriesWithHeaders = [];
+            let lastArchiveId = null;
+
+            for (const entry of entries) {
+                // If this entry belongs to a different archive than the previous one, insert a header
+                if (entry.archiveId && entry.archiveId !== lastArchiveId) {
+                    entriesWithHeaders.push({
+                        isHeader: true,
+                        id: `header-${entry.archiveId}-${entriesWithHeaders.length}`,
+                        archiveId: entry.archiveId,
+                        archiveName: entry.archiveName,
+                        timestamp: entry.timestamp
+                    });
+                    lastArchiveId = entry.archiveId;
+                }
+                entriesWithHeaders.push(entry);
+            }
+            entries = entriesWithHeaders;
+
+        } else {
+            console.log("Archive Viewer | No archives found for selection");
         }
 
         console.log(
@@ -179,47 +243,112 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             );
         }
 
-        // Add expanded state
-        entries = entries.map((e) => ({
-            ...e,
-            expanded: this.expandedEntries.has(e.id),
-        }));
+        // Add expanded state and prepare roll buttons HTML
+        entries = entries.map((e) => {
+            let rollButtonsHtml = "";
 
-        // Calculate compression ratio
-        let compressionRatio = 0;
-        if (currentArchive) {
-            const originalCount =
-                currentArchive.getFlag("chat-trimmer", "originalMessageCount") || 0;
-            const compressedCount =
-                currentArchive.getFlag("chat-trimmer", "compressedEntryCount") ||
-                totalEntries;
+            if (e.rollData) {
+                console.log(`Archive Viewer | Entry ${e.id} has rollData:`, e.rollData);
 
-            if (originalCount > 0) {
-                compressionRatio = Math.round(
-                    ((originalCount - compressedCount) / originalCount) * 100,
-                );
+                // Add damage buttons if they exist (only show PF2e action buttons, not generic re-rolls)
+                if (e.rollData.damageButtons && e.rollData.damageButtons.length > 0) {
+                    console.log(
+                        `Archive Viewer | Creating ${e.rollData.damageButtons.length} damage buttons`,
+                    );
+                    rollButtonsHtml = e.rollData.damageButtons
+                        .map((btn) => {
+                            // Handle PF2e action buttons differently
+                            if (btn.type === "pf2e-action") {
+                                const datasetHtml = Object.entries(btn.dataset || {})
+                                    .map(([k, v]) => `data-${k.replace(/[A-Z]/g, m => "-" + m.toLowerCase())}="${v}"`)
+                                    .join(" ");
+
+                                return `
+                                        <button class="archive-roll-button" 
+                                                data-action="rollButton" 
+                                                data-button-type="pf2e-action"
+                                                data-pf2e-action="${btn.action}"
+                                                data-actor-uuid="${btn.actorUuid || ""}"
+                                                data-item-uuid="${btn.itemUuid || ""}"
+                                                data-flavor="${btn.label}" 
+                                                data-speaker="${e.speaker || "Unknown"}"
+                                                ${datasetHtml}>
+                                            <i class="fas fa-dice-d20"></i> ${btn.label}
+                                        </button>
+                                    `;
+                            } else {
+                                // Regular formula-based button
+                                return `
+                                        <button class="archive-roll-button" 
+                                                data-action="rollButton" 
+                                                data-button-type="formula"
+                                                data-formula="${btn.formula}" 
+                                                data-flavor="${btn.label}" 
+                                                data-speaker="${e.speaker || "Unknown"}">
+                                            <i class="fas fa-dice-d20"></i> ${btn.label}
+                                        </button>
+                                    `;
+                            }
+                        })
+                        .join("");
+                }
+                // Don't show re-roll buttons for regular rolls - they lose PF2e context (target, modifiers, etc.)
+                // Users should open the original message to use the real functional buttons
+            }
+
+            return {
+                ...e,
+                expanded: this.expandedEntries.has(e.id),
+                rollButtonsHtml: rollButtonsHtml,
+            };
+        });
+
+        // Calculate Statistics and Ratio based on targetArchives
+        let originalCount = 0;
+        let compressedCount = 0;
+
+        // Stats aggregation
+        const statKeys = [
+            "totalCombats",
+            "totalDialogues",
+            "totalSkillChecks",
+            "totalRolls",
+            "criticalHits",
+            "criticalFails",
+            "itemsTransferred",
+            "xpAwarded",
+        ];
+        const aggregatedStats = Object.fromEntries(statKeys.map((k) => [k, 0]));
+
+        for (const archive of targetArchives) {
+            originalCount += (archive.getFlag("chat-trimmer", "originalMessageCount") || 0);
+            const cCount = (archive.getFlag("chat-trimmer", "compressedEntryCount") ||
+                (archive.getFlag("chat-trimmer", "entries") || []).length);
+            compressedCount += cCount;
+
+            const stats = archive.getFlag("chat-trimmer", "statistics") || {};
+            for (const k of statKeys) {
+                const v = stats[k];
+                if (Number.isFinite(v)) aggregatedStats[k] += v;
             }
         }
 
-        // Get statistics
-        let statistics = null;
-        if (currentArchive) {
-            statistics = {
-                originalCount: currentArchive.getFlag(
-                    "chat-trimmer",
-                    "originalMessageCount",
-                ),
-                compressedCount: currentArchive.getFlag(
-                    "chat-trimmer",
-                    "compressedEntryCount",
-                ),
-                compressionRatio: currentArchive.getFlag(
-                    "chat-trimmer",
-                    "compressionRatio",
-                ),
-                ...currentArchive.getFlag("chat-trimmer", "statistics"),
-            };
+        let compressionRatio = 0;
+        if (originalCount > 0) {
+            compressionRatio = Math.round(((originalCount - compressedCount) / originalCount) * 100);
         }
+
+        const statistics = {
+            originalCount,
+            compressedCount,
+            compressionRatio,
+            ...aggregatedStats
+        };
+
+        const currentArchive = null; // Unused in new session view paradigm but kept for context compatibility
+
+        // Whether we should show the main viewer body (entries + controls)
+        const showArchiveBody = hasArchives;
 
         return {
             ...context,
@@ -232,8 +361,29 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             totalEntries,
             compressionRatio,
             statistics,
+            targetArchivesList: targetArchives.map(a => ({ id: a.id, name: a.name })),
             hasEntries: entries.length > 0,
+            hasArchives,
+            showArchiveBody,
         };
+    }
+
+    async onDeleteSpecificArchive(event, target) {
+        event.preventDefault();
+        // Prevent bubbling to parent if any
+        event.stopPropagation();
+
+        const archiveId = target.dataset.archiveId || target.closest("[data-archive-id]").dataset.archiveId;
+
+        const confirmed = await ConfirmDialog.confirm({
+            title: game.i18n.localize("CHATTRIMMER.Buttons.DeleteCurrentArchive"),
+            content: `<p>${game.i18n.localize("CHATTRIMMER.Prompts.DeleteArchiveConfirm")}</p>`,
+        });
+
+        if (!confirmed) return;
+
+        await this.archiveManager.deleteArchive(archiveId);
+        this.render(); // Re-render to update list
     }
 
     async onToggleEntry(event, target) {
@@ -254,51 +404,409 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         await this.showOriginalMessages(entryId);
     }
 
-    async showOriginalMessages(entryId) {
-        // Find the entry
-        const archives = await this.archiveManager.getAllArchives();
-        let entry = null;
+    async onRollButton(event, target) {
+        event.stopPropagation();
+        event.preventDefault();
 
-        for (const archive of archives) {
-            const entries = archive.getFlag("chat-trimmer", "entries") || [];
-            entry = entries.find((e) => e.id === entryId);
-            if (entry) break;
+        console.log("Archive Viewer | Roll button clicked", target);
+        console.log("Archive Viewer | Button dataset:", target.dataset);
+
+        const buttonType = target.dataset.buttonType;
+        const flavor = target.dataset.flavor || "Archived Roll";
+        const speaker = target.dataset.speaker || "Unknown";
+
+        try {
+            // Handle PF2e action buttons
+            if (buttonType === "pf2e-action") {
+                const actionType = target.dataset.pf2eAction;
+                console.log(`Archive Viewer | Executing PF2e action: ${actionType} `);
+
+                const actorUuid = target.dataset.actorUuid;
+                const itemUuid = target.dataset.itemUuid;
+
+                if (!actorUuid || !itemUuid) {
+                    ui.notifications.warn("Cannot execute PF2e action: missing actor or item reference");
+                    return;
+                }
+
+                const actor = await fromUuid(actorUuid);
+                const item = await fromUuid(itemUuid);
+
+                if (!actor || !item) {
+                    ui.notifications.warn("Cannot execute PF2e action: actor or item no longer exists");
+                    console.error("Archive Viewer | Could not resolve actor or item");
+                    return;
+                }
+
+                console.log(
+                    `Archive Viewer | Resolved actor: ${actor.name}, item: ${item.name} `,
+                );
+
+                // Execute the PF2e action based on type
+                if (actionType === "spell-damage" && item.type === "spell") {
+                    // Call PF2e's damage roll method
+                    if (typeof item.rollDamage === "function") {
+                        await item.rollDamage({ event });
+                        ui.notifications.info(`Rolled damage for ${item.name}`);
+                    } else {
+                        ui.notifications.warn("This spell cannot roll damage");
+                    }
+                }
+                else if (actionType === "strike-damage" || actionType === "damage" || actionType === "strike-critical" || actionType === "critical") {
+                    const strikes = actor.system.actions || [];
+                    const strikeIndex = target.dataset.index;
+                    const strike = strikes[strikeIndex] || strikes.find(s => s.item?.id === item.id || s.slug === item.slug);
+
+                    if (strike) {
+                        const isCritical = actionType.includes("critical") ||
+                            target.dataset.critical === "true" ||
+                            target.dataset.outcome === "criticalSuccess";
+
+                        // Prepare options to ensure critical is respected
+                        // 'check:outcome:critical-success' is the standard roll option
+                        const rollOptions = isCritical ? ['check:outcome:critical-success'] : [];
+
+                        // Use strike.damage for both, forcing critical via options/outcome if needed
+                        await strike.damage?.({
+                            event,
+                            outcome: isCritical ? 'criticalSuccess' : undefined,
+                            options: rollOptions,
+                            getFormula: isCritical ? (d) => d.criticalFormula : undefined
+                        });
+
+                        ui.notifications.info(`Rolled ${isCritical ? 'critical ' : ''}damage for ${strike.label}`);
+
+                    } else {
+                        // Fallback
+                        const isCritical = actionType.includes("critical") ||
+                            target.dataset.critical === "true" ||
+                            target.dataset.outcome === "criticalSuccess";
+                        if (typeof item.rollDamage === "function") {
+                            await item.rollDamage({
+                                event,
+                                critical: isCritical,
+                                options: isCritical ? ['check:outcome:critical-success'] : [],
+                                outcome: isCritical ? 'criticalSuccess' : undefined
+                            });
+                        }
+                    }
+                }
+                else if (actionType === "strike-attack" || actionType === "attack") {
+                    const strikes = actor.system.actions || [];
+                    const strikeIndex = target.dataset.index;
+                    const variantIndex = target.dataset.variantIndex || 0;
+                    const strike = strikes[strikeIndex] || strikes.find(s => s.item?.id === item.id || s.slug === item.slug);
+
+                    if (strike && strike.variants?.[variantIndex]) {
+                        await strike.variants[variantIndex].roll({ event });
+                    } else {
+                        if (typeof item.rollAttack === "function") {
+                            await item.rollAttack({ event });
+                        }
+                    }
+                }
+                else if (actionType === "apply-damage" || actionType === "apply-healing" || actionType === "target-applyDamage") {
+                    const entryId = target.closest(".archive-entry")?.dataset.entryId;
+                    if (entryId) {
+                        const archives = await this.archiveManager.getAllArchives();
+                        let entry = null;
+                        for (const archive of archives) {
+                            const entries = archive.getFlag("chat-trimmer", "entries") || [];
+                            entry = entries.find(e => e.id === entryId);
+                            if (entry) break;
+                        }
+
+                        if (entry?.originalMessage) {
+                            const MessageClass = getDocumentClass("ChatMessage");
+                            const message = new MessageClass(entry.originalMessage);
+                            const multiplier = Number(target.dataset.multiplier || (actionType === "apply-healing" ? -1 : 1));
+
+                            // 1. Try PF2e Toolbelt (support multiple API locations)
+                            const toolbelt = game.modules.get('pf2e-toolbelt');
+                            const toolbeltApi = toolbelt?.api || game.pf2eToolbelt;
+                            if (toolbelt?.active && toolbeltApi?.target?.applyDamage) {
+                                console.log('Archive Viewer | Using PF2e Toolbelt for damage application');
+                                await toolbeltApi.target.applyDamage(message, multiplier);
+                            } else {
+                                // 2. PF2e System API
+                                const applyDamageFn = game.pf2e?.system?.chat?.applyDamageFromMessage
+                                    || game.pf2e?.RollPF2e?.applyDamageFromMessage
+                                    || (typeof CONFIG.ChatMessage?.documentClass?.applyDamageFromMessage === 'function' ? CONFIG.ChatMessage.documentClass.applyDamageFromMessage : null);
+
+                                if (typeof applyDamageFn === "function") {
+                                    console.log('Archive Viewer | Using PF2e System API');
+                                    await applyDamageFn({
+                                        message,
+                                        multiplier,
+                                        promptModifier: event.shiftKey,
+                                        rollIndex: 0
+                                    });
+                                } else {
+                                    console.warn('Archive Viewer | PF2e system API not found, attempting manual fallback');
+
+                                    // 3. Manual Fallback
+                                    let tokens = [];
+
+                                    // Determine target based on action type
+                                    const isTargetAction = actionType.includes('target');
+
+                                    // 1. Try context target first if it's a target action
+                                    if (isTargetAction) {
+                                        const targetInfo = message.flags.pf2e?.context?.target || message.flags.pf2e?.target;
+                                        if (targetInfo?.token) {
+                                            const tokenUuid = targetInfo.token.startsWith('Scene.') ? targetInfo.token : `Scene.${canvas.scene.id}.Token.${targetInfo.token} `;
+                                            const targetToken = await fromUuid(tokenUuid);
+                                            if (targetToken?.object) {
+                                                tokens = [targetToken.object];
+                                                console.log(`Archive Viewer | Using context target: ${targetToken.name} `);
+                                            }
+                                        }
+                                    }
+
+                                    // 2. Fallbacks
+                                    if (tokens.length === 0 && !isTargetAction) {
+                                        tokens = canvas.tokens.controlled;
+                                    } else if (tokens.length === 0 && isTargetAction) {
+                                        console.warn("Archive Viewer | Target action requested but no target found in context.");
+                                        tokens = canvas.tokens.controlled;
+                                        if (tokens.length > 0) {
+                                            ui.notifications.warn("Could not find original target. Applying to selected token instead.");
+                                        }
+                                    }
+
+                                    if (tokens.length === 0) {
+                                        ui.notifications.warn("PF2E.ErrorMessage.NoTokenSelected", { localize: true });
+                                    } else {
+                                        const roll = message.rolls.find(r => r.constructor.name === "DamageRoll") || message.rolls[0];
+                                        if (!roll) {
+                                            ui.notifications.error("No damage roll found in message");
+                                        } else {
+                                            const damageValue = Math.floor(roll.total * multiplier);
+                                            for (const token of tokens) {
+                                                if (token.actor && typeof token.actor.applyDamage === 'function') {
+                                                    await token.actor.applyDamage({
+                                                        damage: damageValue,
+                                                        token: token,
+                                                        item: message.item,
+                                                        skipIWR: multiplier < 0,
+                                                    });
+                                                    ui.notifications.info(`Applied ${damageValue} ${multiplier < 0 ? 'healing' : 'damage'} to ${token.name} `);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (actionType === "shield-block" || actionType === "target-shieldBlock") {
+                    const entryId = target.closest(".archive-entry")?.dataset.entryId;
+                    if (entryId) {
+                        const entry = this.entryMap?.get(entryId);
+
+                        if (!entry) {
+                            console.warn(`Archive Viewer | Entry ${entryId} not found in map for shield block`);
+                            return;
+                        }
+
+                        if (entry?.originalMessage) {
+                            const MessageClass = getDocumentClass("ChatMessage");
+                            const message = new MessageClass(entry.originalMessage);
+                            const shieldBlockFn = game.pf2e?.system?.chat?.ShieldBlock?.applyFromMessage
+                                || game.pf2e?.ShieldBlock?.applyFromMessage;
+
+                            if (typeof shieldBlockFn === "function") {
+                                await shieldBlockFn(message);
+                            }
+                            // Fallback to native handling
+                            else if (typeof message.onChatCardAction === 'function') {
+                                // We need to mock the event slightly if not perfect, but usually passing the click event is enough
+                                await message.onChatCardAction(event);
+                            }
+                            else if (typeof CONFIG.ChatMessage.documentClass?.onChatCardAction === 'function') {
+                                try {
+                                    await CONFIG.ChatMessage.documentClass.onChatCardAction(event);
+                                } catch (e) { console.warn(e); }
+                            }
+                            else {
+                                ui.notifications.warn("System Shield Block helper not found.");
+                            }
+                        }
+                    }
+                }
+                else {
+                    ui.notifications.warn(`Unknown PF2e action type: ${actionType} `);
+                }
+
+                return;
+            }
+
+            // Handle regular formula-based buttons
+            const formula = target.dataset.formula;
+            console.log(`Archive Viewer | Formula: ${formula}, Flavor: ${flavor} `);
+
+            if (!formula) {
+                ui.notifications.warn("No roll formula found");
+                console.error("Archive Viewer | No formula in button dataset");
+                return;
+            }
+
+            // Create and evaluate the roll
+            const roll = new Roll(formula);
+            await roll.evaluate();
+
+            console.log("Archive Viewer | Roll evaluated:", roll.total);
+
+            // Post to chat
+            await roll.toMessage({
+                speaker: { alias: speaker },
+                flavor: flavor,
+            });
+
+            ui.notifications.info(`Rolled: ${roll.total} `);
+        } catch (error) {
+            console.error("Error executing roll:", error);
+            ui.notifications.error(`Failed to execute roll: ${error.message} `);
         }
-
-        if (!entry) return;
-
-        // Show dialog with original messages
-        new Dialog({
-            title: "Original Messages",
-            content: `
-        <div class="original-messages">
-          <p><strong>${entry.displayText}</strong></p>
-          <p>${entry.originalMessageIds.length} original messages</p>
-          <hr>
-          <div class="message-list">
-            ${entry.originalMessage ? this.formatOriginalMessage(entry.originalMessage) : "<p>Original messages have been deleted. Only the summary remains.</p>"}
-          </div>
-        </div>
-      `,
-            buttons: {
-                close: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Close",
-                },
-            },
-        }).render(true);
     }
 
-    formatOriginalMessage(msg) {
-        const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-        return `
-      <div class="original-message">
-        <div class="message-header">
-          <strong>${msg.speaker?.alias || "Unknown"}</strong>
-          <span class="timestamp">${timestamp}</span>
-        </div>
-        <div class="message-content">${msg.content}</div>
-      </div>
-    `;
+    async showOriginalMessages(entryId) {
+        // Find the entry - O(1) lookup using the cache built during render
+        const entry = this.entryMap?.get(entryId);
+
+        if (!entry) {
+            console.warn(`Archive Viewer | Entry ${entryId} not found in map`);
+        }
+
+        if (!entry || !entry.originalMessage) {
+            ui.notifications.warn(game.i18n.localize("CHATTRIMMER.Notifications.OriginalNotAvailable"));
+            return;
+        }
+
+        // Reconstruct the full ChatMessage and render it
+        const messageData = entry.originalMessage;
+
+        // Create a proper ChatMessage document instance from the stored data
+        // Using getDocumentClass ensures we get the correct PF2e-extended class
+        const MessageClass = getDocumentClass("ChatMessage");
+        const tempMessage = new MessageClass(messageData);
+
+        // Render the message HTML exactly as it appears in chat
+        // V13+ uses renderHTML (returns HTMLElement), V12 uses getHTML (returns jQuery)
+        let messageElement;
+        if (typeof tempMessage.renderHTML === "function") {
+            messageElement = await tempMessage.renderHTML();
+        } else {
+            const jqueryResult = await tempMessage.getHTML();
+            messageElement = jqueryResult[0];
+        }
+
+        // Show dialog with the fully rendered message AND pass the ChatMessage instance
+        const dialog = new MessageViewerDialog({
+            messageTitle: entry.displayText || game.i18n.localize("CHATTRIMMER.ArchiveViewer.OriginalMessage"),
+            messageContent: messageElement.outerHTML, // Full rendered chat message HTML
+            chatMessage: tempMessage, // Pass the ChatMessage instance so we can activate listeners
+        });
+        dialog.render({ force: true });
+    }
+
+    async onDeleteCurrentArchive(event, target) {
+        event.preventDefault();
+
+        if (this.currentSession === "all") {
+            ui.notifications.warn("Please select a specific session/archive or use 'Delete All'.");
+            return;
+        }
+
+        const allArchives = await this.archiveManager.getAllArchives();
+        // Find archives belonging to current session
+        // Note: currentSession is now the Session Name
+        let targets = [];
+
+        // Exact match on sessionName
+        targets = allArchives.filter(a => {
+            const sName = a.getFlag("chat-trimmer", "sessionName") || a.name;
+            return sName === this.currentSession;
+        });
+
+        if (targets.length === 0) {
+            ui.notifications.warn(game.i18n.localize("CHATTRIMMER.Notifications.NoArchivesToDelete"));
+            return;
+        }
+
+        // Confirm deletion
+        const confirmed = await ConfirmDialog.confirm({
+            title: game.i18n.localize("CHATTRIMMER.Buttons.DeleteCurrentArchive"),
+            content: `<p>Are you sure you want to delete the session <strong>${this.currentSession}</strong>?</p>
+                      <p>This includes <strong>${targets.length}</strong> archive(s). This action cannot be undone.</p>`,
+        });
+
+        if (!confirmed) return;
+
+        // Delete all targets
+        for (const archive of targets) {
+            await this.archiveManager.deleteArchive(archive.id);
+        }
+
+        ui.notifications.info(`${targets.length} archives from session '${this.currentSession}' deleted.`);
+
+        // Re-render
+        // Reset valid session?
+        this.currentSession = "all";
+        this.render({ force: true });
+    }
+
+    async onDeleteAllArchives(event, target) {
+        const archives = await this.archiveManager.getAllArchives();
+        if (archives.length === 0) {
+            ui.notifications.warn(game.i18n.localize("CHATTRIMMER.Notifications.NoArchivesToDelete"));
+            return;
+        }
+
+        // Confirm deletion
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: "Delete All Archives" },
+            content: `< p > Are you sure you want to delete <strong>all ${archives.length} archives</strong> ?</p > <p>This action cannot be undone.</p>`,
+            rejectClose: false,
+            modal: true,
+        });
+
+        if (!confirmed) return;
+
+        // Delete all archives
+        await this.archiveManager.deleteAllArchives();
+        ui.notifications.info(game.i18n.localize("CHATTRIMMER.Notifications.AllArchivesDeleted"));
+
+        // Re-render the viewer
+        this.render({ force: true });
+    }
+
+    sanitizeMessageContent(html) {
+        if (!html) return "";
+
+        // Create a temporary div to parse HTML
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
+
+        // Remove all button elements (they won't work in archives)
+        temp.querySelectorAll("button").forEach((btn) => btn.remove());
+
+        // Remove script tags
+        temp.querySelectorAll("script").forEach((script) => script.remove());
+
+        // Remove inline event handlers
+        temp.querySelectorAll("[onclick], [onload], [onerror]").forEach((el) => {
+            el.removeAttribute("onclick");
+            el.removeAttribute("onload");
+            el.removeAttribute("onerror");
+        });
+
+        // Remove data-action attributes (Foundry click handlers)
+        temp.querySelectorAll("[data-action]").forEach((el) => {
+            el.removeAttribute("data-action");
+        });
+
+        return temp.innerHTML;
     }
 }

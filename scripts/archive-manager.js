@@ -28,6 +28,35 @@ export class ArchiveManager {
     }
 
     /**
+     * Delete a specific archive
+     * @param {string} archiveId - The ID of the archive to delete
+     */
+    async deleteArchive(archiveId) {
+        const journal = game.journal.get(archiveId);
+        if (!journal) {
+            console.warn(`Archive Manager | Archive ${archiveId} not found`);
+            return;
+        }
+
+        console.log(`Archive Manager | Deleting archive: ${journal.name}`);
+        await journal.delete();
+    }
+
+    /**
+     * Delete all archives in the Chat Archives folder
+     */
+    async deleteAllArchives() {
+        await this.initialize();
+
+        const archives = await this.getAllArchives();
+        console.log(`Archive Manager | Deleting ${archives.length} archives`);
+
+        for (const archive of archives) {
+            await archive.delete();
+        }
+    }
+
+    /**
      * Create a new archive
      * @param {Object} data - Archive data
      * @returns {JournalEntry} Created archive journal entry
@@ -51,6 +80,10 @@ export class ArchiveManager {
             hour: "2-digit",
             minute: "2-digit",
         });
+        const archiveName = `Chat Archive - ${dateStr} ${timeStr}`;
+
+        // Determine storage type
+        const storageType = game.settings.get("chat-trimmer", "storageType") || "journal";
 
         // Calculate compression ratio
         const compressionRatio = Math.round(
@@ -59,13 +92,59 @@ export class ArchiveManager {
             100,
         );
 
-        console.log(
-            `Archive Manager | Archive name: Chat Archive - ${dateStr} ${timeStr}`,
-        );
-        console.log(`Archive Manager | Compression ratio: ${compressionRatio}%`);
-        console.log(`Archive Manager | Entries to store:`, data.entries.length);
-        console.log(`Archive Manager | First entry:`, data.entries[0]);
+        // Prep metadata
+        const metadata = {
+            isArchive: true,
+            sessionNumber,
+            sessionName: game.settings.get("chat-trimmer", "currentSessionName"),
+            archiveDate: now.toISOString(),
+            originalMessageCount: data.originalMessageCount,
+            compressedEntryCount: data.compressedEntryCount,
+            compressionRatio,
+            searchIndex: data.searchIndex,
+            statistics: data.stats,
+        };
 
+        // Handle external storage (No Journal)
+        if (storageType === "external") {
+            try {
+                const filename = `archive-${sessionNumber}.json`;
+                // Store full data in file
+                const fileData = {
+                    ...metadata,
+                    name: archiveName,
+                    entries: data.entries
+                };
+
+                const filePath = await this._saveToExternalFile(fileData, filename);
+                console.log(`Archive Manager | Saved to external file: ${filePath}`);
+
+                // Create Index Entry (Lightweight)
+                const indexEntry = {
+                    id: foundry.utils.randomID(),
+                    name: archiveName,
+                    ...metadata,
+                    storageType: "external",
+                    filePath: filePath,
+                    entries: [] // Empty in index
+                };
+
+                // Save to Settings Index
+                const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
+                index.push(indexEntry);
+                await game.settings.set("chat-trimmer", "archiveIndex", index);
+
+                ui.notifications.info(`${archiveName} created successfully (External JSON).`);
+                return new VirtualArchive(indexEntry);
+
+            } catch (err) {
+                console.error("Archive Manager | Failed to save to external file, falling back to journal:", err);
+                ui.notifications.warn("Failed to save archive to file. Falling back to Journal storage.");
+                // Fallthrough to journal
+            }
+        }
+
+        // Journal fallback / default
         // Build formatted content for journal pages
         const summaryContent = this.buildSummaryPage(
             data,
@@ -77,7 +156,7 @@ export class ArchiveManager {
 
         // Create journal entry with pages
         const journal = await JournalEntry.create({
-            name: `Chat Archive - ${dateStr} ${timeStr}`,
+            name: archiveName,
             folder: this.folder.id,
             pages: [
                 {
@@ -99,15 +178,9 @@ export class ArchiveManager {
             ],
             flags: {
                 "chat-trimmer": {
-                    isArchive: true,
-                    sessionNumber,
-                    archiveDate: now.toISOString(),
-                    originalMessageCount: data.originalMessageCount,
-                    compressedEntryCount: data.compressedEntryCount,
-                    compressionRatio,
+                    ...metadata,
                     entries: data.entries,
-                    searchIndex: data.searchIndex,
-                    statistics: data.stats,
+                    storageType: "journal"
                 },
             },
         });
@@ -115,12 +188,56 @@ export class ArchiveManager {
         console.log(
             `Archive Manager | Journal entry created successfully: ${journal.id}`,
         );
-        console.log(
-            `Archive Manager | Stored entries:`,
-            journal.getFlag("chat-trimmer", "entries")?.length,
-        );
 
         return journal;
+    }
+
+    /**
+     * Helper to save array to external JSON file
+     */
+    async _saveToExternalFile(data, filename) {
+        const path = `worlds/${game.world.id}/chat-trimmer-archives`;
+
+        // Ensure directory exists
+        try {
+            await FilePicker.browse("data", path);
+        } catch (e) {
+            await FilePicker.createDirectory("data", path);
+        }
+
+        const file = new File([JSON.stringify(data)], filename, { type: "application/json" });
+        await FilePicker.upload("data", path, file);
+
+        return `${path}/${filename}`;
+    }
+
+    /**
+     * Retrieve entries for an archive (handling specific storage types)
+     */
+    async getArchiveEntries(archive) {
+        if (!archive) return [];
+
+        const type = archive.getFlag("chat-trimmer", "storageType");
+
+        if (type === "external") {
+            const filePath = archive.getFlag("chat-trimmer", "filePath");
+            if (!filePath) return [];
+
+            try {
+                // Must fetch the file
+                // Use cache busting?
+                const response = await fetch(filePath);
+                if (!response.ok) throw new Error("File not found");
+                const json = await response.json();
+                return json.entries || [];
+            } catch (e) {
+                console.error("Archive Manager | Error fetching external archive:", e);
+                ui.notifications.error(`Could not load archive file: ${filePath}`);
+                return [];
+            }
+        }
+
+        return archive.getFlag("chat-trimmer", "entries") || [];
     }
 
     /**
@@ -146,9 +263,16 @@ export class ArchiveManager {
     async getAllArchives() {
         await this.initialize();
 
-        return game.journal.filter(
+        // Get Journals
+        const journals = game.journal.filter(
             (j) => j.getFlag("chat-trimmer", "isArchive") === true,
         );
+
+        // Get Virtual Archives from Settings
+        const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
+        const virtualArchives = index.map(data => new VirtualArchive(data));
+
+        return [...journals, ...virtualArchives];
     }
 
     /**
@@ -203,7 +327,7 @@ export class ArchiveManager {
         const results = [];
 
         for (const archive of archives) {
-            const entries = archive.getFlag("chat-trimmer", "entries") || [];
+            const entries = await this.getArchiveEntries(archive);
             const searchIndex = archive.getFlag("chat-trimmer", "searchIndex") || {};
 
             for (const entry of entries) {
@@ -383,7 +507,7 @@ export class ArchiveManager {
         const archive = await this.getArchive(sessionNumber);
         if (!archive) return null;
 
-        const entries = archive.getFlag("chat-trimmer", "entries") || [];
+        const entries = await this.getArchiveEntries(archive);
         const stats = archive.getFlag("chat-trimmer", "statistics") || {};
 
         let text = `# ${archive.name}\n\n`;
@@ -408,5 +532,37 @@ export class ArchiveManager {
         }
 
         return text;
+    }
+}
+
+/**
+ * Virtual Archive class to access index-stored archives consistently
+ */
+class VirtualArchive {
+    constructor(data) {
+        this.data = data;
+        this.id = data.id;
+        this.name = data.name;
+    }
+
+    /**
+     * Mimic getFlag from Foundry Document
+     */
+    getFlag(scope, key) {
+        if (scope !== "chat-trimmer") return undefined;
+        return this.data[key];
+    }
+
+    /**
+     * Delete self from index
+     */
+    async delete() {
+        console.log(`Archive Manager | Deleting virtual archive ${this.id}`);
+        // Remove from settings
+        const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
+        const newIndex = index.filter(i => i.id !== this.id);
+        await game.settings.set("chat-trimmer", "archiveIndex", newIndex);
+
+        ui.notifications.info(game.i18n.localize("CHATTRIMMER.Notifications.ArchiveDeleted"));
     }
 }

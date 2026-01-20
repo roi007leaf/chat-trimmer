@@ -1,16 +1,24 @@
 <div class="chat-archive-viewer">
     <div class="archive-header">
         <h2>{{localize "CHATTRIMMER.ArchiveViewer.Title"}}</h2>
-        <select class="archive-select" name="session">
-            {{#each archives}}
-            <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>
-                {{this.label}}
-            </option>
-            {{/each}}
-        </select>
+        <div class="archive-header-controls">
+            <select class="archive-select" name="session">
+                {{#each archives}}
+                <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>
+                    {{this.label}}
+                </option>
+                {{/each}}
+            </select>
+            <button type="button" class="delete-current-archive" data-action="deleteCurrentArchive" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteCurrentArchive'}}">
+                <i class="fas fa-trash"></i>
+            </button>
+            <button type="button" class="delete-all-archives" data-action="deleteAllArchives" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteAllArchives'}}">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
     </div>
 
-    {{#if currentArchive}}
+    {{#if showArchiveBody}}
     <div class="archive-body">
         <div class="archive-controls">
             <div class="filter-group">
@@ -70,22 +78,37 @@
 
         <div class="archive-entries">
             {{#each filteredEntries}}
+            {{#if this.isHeader}}
+            <div class="archive-group-header">
+                <span class="header-name">{{this.archiveName}}</span>
+                <button type="button" class="header-delete-btn" data-action="deleteSpecificArchive" data-archive-id="{{this.archiveId}}" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteArchive'}}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            {{else}}
             <div class="archive-entry {{this.category}}" data-entry-id="{{this.id}}">
                 <div class="entry-header" data-action="toggleEntry">
                     <span class="entry-icon">{{this.icon}}</span>
-                    <span class="entry-summary">{{this.displaySummary}}</span>
-                    <span class="entry-timestamp">{{this.timestamp}}</span>
+                    <div class="entry-header-content">
+                        {{#if this.speaker}}<div class="entry-speaker">{{this.speaker}}</div>{{/if}}
+                        <span class="entry-summary">{{#if this.displaySummary}}{{this.displaySummary}}{{else}}{{this.displayText}}{{/if}}</span>
+                    </div>
+                    <span class="entry-timestamp">{{formatTime this.timestamp}}</span>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="entry-content {{#unless this.expanded}}hidden{{/unless}}">
                     <div class="entry-original">{{{this.content}}}</div>
                     <div class="entry-actions">
+                        {{#if this.rollButtonsHtml}}
+                        <div class="entry-roll-buttons">{{{this.rollButtonsHtml}}}</div>
+                        {{/if}}
                         <button class="view-original" data-action="viewOriginal" data-message-id="{{this.id}}">
-                            <i class="fas fa-eye"></i> {{localize "CHATTRIMMER.ArchiveViewer.ViewOriginal"}}
+                            <i class="fas fa-eye"></i> {{localize "CHATTRIMMER.Buttons.ViewOriginal"}}
                         </button>
                     </div>
                 </div>
             </div>
+            {{/if}}
             {{else}}
             <div class="no-entries">
                 <p>{{localize "CHATTRIMMER.ArchiveViewer.NoEntries"}}</p>

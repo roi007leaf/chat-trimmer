@@ -12,8 +12,18 @@ export class KeywordExtractor {
         const text = JSON.stringify(data).toLowerCase();
 
         // Extract actor/character names
+        // Extract actor/character names
         if (data.participants) {
-            data.participants.forEach((p) => keywords.add(p.toLowerCase()));
+            if (Array.isArray(data.participants)) {
+                data.participants.forEach((p) => keywords.add(p.toLowerCase()));
+            } else {
+                if (data.participants.allies) {
+                    data.participants.allies.forEach((p) => keywords.add(p.toLowerCase()));
+                }
+                if (data.participants.enemies) {
+                    data.participants.enemies.forEach((p) => keywords.add(p.toLowerCase()));
+                }
+            }
         }
         if (data.actor) {
             keywords.add(data.actor.toLowerCase());
