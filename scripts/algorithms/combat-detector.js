@@ -327,39 +327,32 @@ export class CombatDetector {
             }
         }
 
-        // Extract key moments
+        // Extract key moments and calculate statistics in single pass for performance
         const keyMoments = [];
-        for (const round of combat.rounds) {
-            for (const action of round.actions) {
-                if (action.critical && action.damage) {
-                    keyMoments.push(
-                        `${action.actor} scored a critical hit on ${action.target || "target"} (${action.damage} damage)`,
-                    );
-                } else if (action.critical) {
-                    keyMoments.push(`${action.actor} scored a critical hit`);
-                }
-                if (action.fumble) {
-                    keyMoments.push(`${action.actor} critically failed`);
-                }
-            }
-        }
-
-        // Add casualties to key moments
-        if (combat.casualties) {
-            combat.casualties.forEach((c) => {
-                keyMoments.push(`${c} was defeated`);
-            });
-        }
-
-        // Calculate statistics
         let totalDamageDealt = 0;
         let totalDamageTaken = 0;
         let criticalHits = 0;
 
         for (const round of combat.rounds) {
             for (const action of round.actions) {
-                if (action.critical) criticalHits++;
+                // Track critical hits
+                if (action.critical) {
+                    criticalHits++;
+                    if (action.damage) {
+                        keyMoments.push(
+                            `${action.actor} scored a critical hit on ${action.target || "target"} (${action.damage} damage)`,
+                        );
+                    } else {
+                        keyMoments.push(`${action.actor} scored a critical hit`);
+                    }
+                }
 
+                // Track fumbles
+                if (action.fumble) {
+                    keyMoments.push(`${action.actor} critically failed`);
+                }
+
+                // Calculate damage statistics
                 if (action.damage) {
                     // Determine if dealt or taken based on actor
                     const actor = game.actors?.getName(action.actor);
@@ -370,6 +363,13 @@ export class CombatDetector {
                     }
                 }
             }
+        }
+
+        // Add casualties to key moments
+        if (combat.casualties) {
+            combat.casualties.forEach((c) => {
+                keyMoments.push(`${c} was defeated`);
+            });
         }
 
         // Get scene name

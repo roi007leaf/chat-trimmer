@@ -54,7 +54,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
 
     static DEFAULT_OPTIONS = {
         id: "chat-trimmer-message-viewer",
-        classes: ["chat-trimmer-dialog"],
+        classes: ["chat-trimmer-dialog", "original-messages-dialog"],
         tag: "div",
         window: {
             title: game.i18n?.localize("CHATTRIMMER.ArchiveViewer.OriginalMessage") || "Original Message",
@@ -232,10 +232,12 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                     break;
 
                                 case 'apply-damage':
+                                case 'applyDamage':
                                 case 'apply-healing':
+                                case 'applyHealing':
                                 case 'target-applyDamage':
                                     console.log('Archive Viewer | Applying damage/healing from archived message');
-                                    const multiplier = Number(dataset.multiplier || (action === 'apply-healing' ? -1 : 1));
+                                    const multiplier = Number(dataset.multiplier || (action === 'apply-healing' || action === 'applyHealing' ? -1 : 1));
                                     try {
                                         // 1. Try PF2e Toolbelt (support multiple API locations)
                                         const toolbelt = game.modules.get('pf2e-toolbelt');
@@ -324,36 +326,67 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                     break;
 
                                 case 'shield-block':
+                                case 'shieldBlock':
                                 case 'target-shieldBlock':
                                     console.log('Archive Viewer | Applying shield block from archived message');
                                     try {
-                                        // 1. Try known system helpers
-                                        const shieldBlockFn = game.pf2e?.system?.chat?.ShieldBlock?.applyFromMessage
-                                            || game.pf2e?.ShieldBlock?.applyFromMessage;
+                                        // Log available PF2e API structure for debugging
+                                        console.log('Archive Viewer | PF2e API structure:', {
+                                            'game.pf2e': game.pf2e ? Object.keys(game.pf2e) : 'undefined',
+                                            'game.pf2e.actions': game.pf2e?.actions ? Object.keys(game.pf2e.actions) : 'undefined',
+                                            'CONFIG.PF2E': CONFIG.PF2E ? Object.keys(CONFIG.PF2E) : 'undefined'
+                                        });
+
+                                        // 1. Try various PF2e system API locations
+                                        const shieldBlockFn =
+                                            game.pf2e?.actions?.shieldBlock?.applyDamage
+                                            || game.pf2e?.actions?.shieldBlock
+                                            || game.pf2e?.ShieldBlock?.applyFromMessage
+                                            || game.pf2e?.system?.chat?.ShieldBlock?.applyFromMessage
+                                            || CONFIG.PF2E?.actions?.shieldBlock;
 
                                         if (typeof shieldBlockFn === 'function') {
-                                            await shieldBlockFn(this.chatMessage);
+                                            console.log('Archive Viewer | Found PF2e shield block function, calling it');
+                                            await shieldBlockFn(this.chatMessage, event);
                                         }
-                                        // 2. Try native message handling (V12/V13)
-                                        else if (typeof this.chatMessage.onChatCardAction === 'function') {
-                                            console.log('Archive Viewer | Using message.onChatCardAction for Shield Block');
-                                            // onChatCardAction usually expects the event
-                                            await this.chatMessage.onChatCardAction(event);
-                                        }
-                                        else if (typeof CONFIG.ChatMessage.documentClass?.onChatCardAction === 'function') {
-                                            console.log('Archive Viewer | Using static ChatMessage.onChatCardAction for Shield Block');
-                                            try {
-                                                await CONFIG.ChatMessage.documentClass.onChatCardAction(event);
-                                            } catch (e) {
-                                                console.warn("Failed static handler call", e);
+                                        // 2. Try message's own handler
+                                        else if (typeof this.chatMessage.getFlag === 'function') {
+                                            console.log('Archive Viewer | Trying direct message flag approach');
+                                            const messageFlags = this.chatMessage.flags?.pf2e;
+                                            console.log('Archive Viewer | Message flags:', messageFlags);
+
+                                            // Try to find the shield block action data
+                                            const shieldBlockData = messageFlags?.context?.shieldBlock;
+                                            if (shieldBlockData) {
+                                                console.log('Archive Viewer | Found shield block data in flags:', shieldBlockData);
+                                                // Try to apply using actor methods
+                                                const actorUuid = messageFlags.origin?.actor;
+                                                if (actorUuid) {
+                                                    const actor = await fromUuid(actorUuid);
+                                                    if (actor && typeof actor.applyShieldBlock === 'function') {
+                                                        console.log('Archive Viewer | Using actor.applyShieldBlock');
+                                                        await actor.applyShieldBlock(this.chatMessage);
+                                                    } else {
+                                                        console.warn('Archive Viewer | Actor found but no applyShieldBlock method');
+                                                        ui.notifications.warn("Shield block not available. Please apply manually.");
+                                                    }
+                                                } else {
+                                                    console.warn('Archive Viewer | No actor UUID in message flags');
+                                                    ui.notifications.warn("Cannot determine actor for shield block. Please apply manually.");
+                                                }
+                                            } else {
+                                                console.warn('Archive Viewer | No shield block data in message flags');
+                                                ui.notifications.warn("Shield block not available from archived message. Please apply manually.");
                                             }
                                         }
                                         else {
-                                            console.warn('Archive Viewer | PF2e ShieldBlock function not found');
-                                            ui.notifications.warn("System Shield Block helper not found. Please apply shield damage manually.");
+                                            console.warn('Archive Viewer | No PF2e ShieldBlock API found');
+                                            console.warn('Archive Viewer | Available in game.pf2e:', game.pf2e ? Object.keys(game.pf2e) : 'undefined');
+                                            ui.notifications.warn("Shield block not supported from archived messages. Please apply shield damage manually.");
                                         }
                                     } catch (err) {
                                         console.error('Archive Viewer | Error applying shield block:', err);
+                                        ui.notifications.error(`Shield block failed: ${err.message}`);
                                     }
                                     break;
 

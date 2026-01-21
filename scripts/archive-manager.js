@@ -5,6 +5,7 @@ export class ArchiveManager {
     constructor() {
         this.folderName = "Chat Archives";
         this.folder = null;
+        this.indexCache = null; // Map cache for O(1) archiveIndex lookups
     }
 
     /**
@@ -25,6 +26,34 @@ export class ArchiveManager {
         }
 
         return this.folder;
+    }
+
+    /**
+     * Get or build the archive index cache for O(1) lookups
+     * @returns {Map<string, Object>} Map of archive ID to index entry
+     */
+    getIndexCache() {
+        if (!this.indexCache) {
+            const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
+            this.indexCache = new Map(index.map(entry => [entry.id, entry]));
+        }
+        return this.indexCache;
+    }
+
+    /**
+     * Invalidate the index cache (call this whenever archiveIndex is modified)
+     */
+    invalidateIndexCache() {
+        this.indexCache = null;
+    }
+
+    /**
+     * Get an archive index entry by ID with O(1) lookup
+     * @param {string} archiveId - The archive ID to look up
+     * @returns {Object|null} The index entry or null if not found
+     */
+    getIndexEntry(archiveId) {
+        return this.getIndexCache().get(archiveId) || null;
     }
 
     /**
@@ -57,19 +86,30 @@ export class ArchiveManager {
     }
 
     /**
-     * Create a new archive
+     * Create a new archive or append to existing session archive
      * @param {Object} data - Archive data
-     * @returns {JournalEntry} Created archive journal entry
+     * @returns {JournalEntry} Created or updated archive
      */
     async create(data) {
-        console.log("Archive Manager | Creating new archive");
+        console.log("Archive Manager | Creating or appending to archive");
         console.log(
-            `Archive Manager | Entries: ${data.entries.length}, Original messages: ${data.originalMessageCount}`,
+            `Archive Manager | New entries: ${data.entries.length}, Original messages: ${data.originalMessageCount}`,
         );
 
         await this.initialize();
 
-        const sessionNumber = await this.getNextSessionNumber();
+        // Get current session number from settings
+        const sessionNumber = game.settings.get("chat-trimmer", "currentSessionNumber");
+
+        // Check if archive for this session already exists
+        const existingArchive = await this.getArchive(sessionNumber);
+
+        if (existingArchive) {
+            console.log(`Archive Manager | Found existing archive for session ${sessionNumber}, appending entries`);
+            return await this.appendToArchive(existingArchive, data);
+        }
+
+        console.log(`Archive Manager | Creating new archive for session ${sessionNumber}`);
         const now = new Date();
         const dateStr = now.toLocaleDateString("en-US", {
             year: "numeric",
@@ -133,6 +173,7 @@ export class ArchiveManager {
                 const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
                 index.push(indexEntry);
                 await game.settings.set("chat-trimmer", "archiveIndex", index);
+                this.invalidateIndexCache(); // Invalidate cache after modification
 
                 ui.notifications.info(`${archiveName} created successfully (External JSON).`);
                 return new VirtualArchive(indexEntry);
@@ -193,20 +234,178 @@ export class ArchiveManager {
     }
 
     /**
+     * Append entries to an existing archive
+     * @param {Object} archive - Existing archive (journal or virtual)
+     * @param {Object} data - New data to append
+     * @returns {Object} Updated archive
+     */
+    async appendToArchive(archive, data) {
+        const storageType = archive.getFlag("chat-trimmer", "storageType");
+
+        // Get existing entries
+        const existingEntries = await this.getArchiveEntries(archive);
+
+        // Merge new entries with existing (maintain chronological order)
+        const allEntries = [...existingEntries, ...data.entries];
+        allEntries.sort((a, b) => a.timestamp - b.timestamp);
+
+        // Update statistics
+        const existingOriginalCount = archive.getFlag("chat-trimmer", "originalMessageCount") || 0;
+        const existingStats = archive.getFlag("chat-trimmer", "statistics") || {};
+
+        const newOriginalCount = existingOriginalCount + data.originalMessageCount;
+        const newCompressedCount = allEntries.length;
+        const newCompressionRatio = Math.round(
+            ((newOriginalCount - newCompressedCount) / newOriginalCount) * 100,
+        );
+
+        // Merge statistics
+        const newStats = {
+            totalCombats: (existingStats.totalCombats || 0) + (data.stats?.totalCombats || 0),
+            totalDialogues: (existingStats.totalDialogues || 0) + (data.stats?.totalDialogues || 0),
+            totalSkillChecks: (existingStats.totalSkillChecks || 0) + (data.stats?.totalSkillChecks || 0),
+            totalRolls: (existingStats.totalRolls || 0) + (data.stats?.totalRolls || 0),
+            criticalHits: (existingStats.criticalHits || 0) + (data.stats?.criticalHits || 0),
+            criticalFails: (existingStats.criticalFails || 0) + (data.stats?.criticalFails || 0),
+            itemsTransferred: (existingStats.itemsTransferred || 0) + (data.stats?.itemsTransferred || 0),
+            xpAwarded: (existingStats.xpAwarded || 0) + (data.stats?.xpAwarded || 0),
+        };
+
+        // Merge search index
+        const existingSearchIndex = archive.getFlag("chat-trimmer", "searchIndex") || {};
+        const newSearchIndex = {
+            keywords: [...(existingSearchIndex.keywords || []), ...(data.searchIndex?.keywords || [])],
+            actors: [...new Set([...(existingSearchIndex.actors || []), ...(data.searchIndex?.actors || [])])],
+            scenes: [...new Set([...(existingSearchIndex.scenes || []), ...(data.searchIndex?.scenes || [])])],
+        };
+
+        const metadata = {
+            isArchive: true,
+            sessionNumber: archive.getFlag("chat-trimmer", "sessionNumber"),
+            sessionName: archive.getFlag("chat-trimmer", "sessionName"),
+            archiveDate: archive.getFlag("chat-trimmer", "archiveDate"),
+            originalMessageCount: newOriginalCount,
+            compressedEntryCount: newCompressedCount,
+            compressionRatio: newCompressionRatio,
+            searchIndex: newSearchIndex,
+            statistics: newStats,
+        };
+
+        // Handle external storage
+        if (storageType === "external") {
+            const filePath = archive.getFlag("chat-trimmer", "filePath");
+            if (!filePath) {
+                console.error("Archive Manager | External archive has no file path");
+                return archive;
+            }
+
+            try {
+                // Extract filename from path
+                const filename = filePath.split('/').pop();
+
+                // Save updated data to file
+                const fileData = {
+                    ...metadata,
+                    name: archive.name,
+                    entries: allEntries
+                };
+
+                await this._saveToExternalFile(fileData, filename);
+                console.log(`Archive Manager | Updated external file: ${filePath}`);
+
+                // Update index entry using O(1) lookup
+                const indexEntry = this.getIndexEntry(archive.id);
+                if (indexEntry) {
+                    Object.assign(indexEntry, metadata);
+                    const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
+                    await game.settings.set("chat-trimmer", "archiveIndex", index);
+                    this.invalidateIndexCache(); // Invalidate cache after modification
+                }
+
+                ui.notifications.info(`Archive updated: ${data.originalMessageCount} messages added`);
+                return new VirtualArchive({...indexEntry, entries: []});
+
+            } catch (err) {
+                console.error("Archive Manager | Failed to update external archive:", err);
+                ui.notifications.error("Failed to update archive file.");
+                return archive;
+            }
+        }
+
+        // Handle journal storage
+        console.log(`Archive Manager | Updating journal archive`);
+
+        // Rebuild journal pages
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+        const timeStr = now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+
+        const summaryContent = this.buildSummaryPage(
+            { ...data, entries: allEntries, originalMessageCount: newOriginalCount, compressedEntryCount: newCompressedCount, stats: newStats },
+            newCompressionRatio,
+            dateStr,
+            timeStr,
+        );
+        const entriesContent = this.buildEntriesPage(allEntries);
+
+        // Update existing journal
+        await archive.update({
+            pages: [
+                {
+                    name: "Summary",
+                    type: "text",
+                    text: {
+                        content: summaryContent,
+                        format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML,
+                    },
+                },
+                {
+                    name: "Archive Entries",
+                    type: "text",
+                    text: {
+                        content: entriesContent,
+                        format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML,
+                    },
+                },
+            ],
+            flags: {
+                "chat-trimmer": {
+                    ...metadata,
+                    entries: allEntries,
+                    storageType: "journal"
+                },
+            },
+        });
+
+        console.log(`Archive Manager | Journal archive updated successfully`);
+        ui.notifications.info(`Archive updated: ${data.originalMessageCount} messages added`);
+
+        return archive;
+    }
+
+    /**
      * Helper to save array to external JSON file
      */
     async _saveToExternalFile(data, filename) {
         const path = `worlds/${game.world.id}/chat-trimmer-archives`;
+        const FilePickerImpl = foundry.applications.apps.FilePicker.implementation;
 
         // Ensure directory exists
         try {
-            await FilePicker.browse("data", path);
+            await FilePickerImpl.browse("data", path);
         } catch (e) {
-            await FilePicker.createDirectory("data", path);
+            await FilePickerImpl.createDirectory("data", path);
         }
 
         const file = new File([JSON.stringify(data)], filename, { type: "application/json" });
-        await FilePicker.upload("data", path, file);
+        await FilePickerImpl.upload("data", path, file);
 
         return `${path}/${filename}`;
     }
@@ -238,6 +437,292 @@ export class ArchiveManager {
         }
 
         return archive.getFlag("chat-trimmer", "entries") || [];
+    }
+
+    /**
+     * Generate session summary with key events (in chronological order)
+     * @param {Object} archive - The archive to summarize
+     * @param {Array} entriesParam - Optional pre-loaded entries array (for multi-archive sessions)
+     * @returns {Object} Session summary
+     */
+    async generateSessionSummary(archive, entriesParam = null) {
+        // Use provided entries or fetch from archive
+        const entries = entriesParam || await this.getArchiveEntries(archive);
+        const sessionName = archive.getFlag("chat-trimmer", "sessionName");
+        const sessionNumber = archive.getFlag("chat-trimmer", "sessionNumber");
+        const archiveDate = new Date(archive.getFlag("chat-trimmer", "archiveDate"));
+        const sessionStartTime = game.settings.get("chat-trimmer", "currentSessionStartTime");
+
+        // Calculate duration
+        const startTime = entries.length > 0 ? entries[0].timestamp : sessionStartTime;
+        const endTime = entries.length > 0 ? entries[entries.length - 1].timestamp : Date.now();
+        const durationMs = endTime - startTime;
+        const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+        const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+        const duration = `${durationHours}h ${durationMinutes}m`;
+
+        // Extract participants (unique actors)
+        const participants = new Set();
+        entries.forEach(entry => {
+            if (entry.speaker && entry.speaker !== "Unknown" && entry.speaker !== "Combat") {
+                participants.add(entry.speaker);
+            }
+        });
+
+        // Recalculate statistics from entries (don't trust stored stats)
+        const stats = {
+            totalCombats: 0,
+            totalRolls: 0,
+            criticalHits: 0,
+            criticalFails: 0
+        };
+
+        entries.forEach(entry => {
+            // Count combat entries
+            if (entry.category === "combat" || entry.type === "combat") {
+                stats.totalCombats++;
+            }
+
+            // Count rolls (entries with rollData or category "rolls")
+            if (entry.rollData || entry.category === "rolls") {
+                stats.totalRolls++;
+            }
+
+            // Count critical hits and fails from content
+            const content = (entry.content || "").toLowerCase();
+            const displayText = (entry.displayText || entry.displaySummary || "").toLowerCase();
+            const searchText = `${content} ${displayText}`;
+
+            if (searchText.includes("critical")) {
+                if (searchText.includes("success") || searchText.includes("hit")) {
+                    stats.criticalHits++;
+                } else if (searchText.includes("fail") || searchText.includes("miss") || searchText.includes("fumble")) {
+                    stats.criticalFails++;
+                }
+            }
+        });
+
+        // Extract key events in chronological order
+        const keyEvents = [];
+
+        console.log(`Archive Manager | Generating key events from ${entries.length} entries`);
+        if (entries.length > 0) {
+            console.log(`Archive Manager | Sample entry:`, {
+                category: entries[0].category,
+                type: entries[0].type,
+                displayText: entries[0].displayText,
+                speaker: entries[0].speaker
+            });
+        }
+
+        entries.forEach(entry => {
+            const displayText = entry.displayText || entry.displaySummary || "";
+            const content = entry.content || "";
+            const lowerText = displayText.toLowerCase();
+            const lowerContent = content.toLowerCase();
+            const combinedText = `${lowerText} ${lowerContent}`;
+
+            // Check for death from damage (HP reaching 0)
+            // Look for damage messages and check if target HP reached 0
+            if (entry.originalMessage && (lowerText.includes("damage") || lowerContent.includes("damage"))) {
+                // Try to extract target actor from the message
+                const msg = entry.originalMessage;
+
+                // Check PF2e-specific flags for target
+                const targetUuid = msg?.flags?.pf2e?.context?.target?.actor;
+                let targetActor = null;
+
+                if (targetUuid) {
+                    try {
+                        targetActor = fromUuidSync(targetUuid);
+                    } catch (e) {
+                        // Actor might not exist anymore
+                    }
+                }
+
+                // If we found a target actor, check their HP
+                if (targetActor && targetActor.system?.attributes?.hp) {
+                    const currentHP = targetActor.system.attributes.hp.value;
+
+                    // If HP is 0 or below, this is a death event
+                    if (currentHP <= 0) {
+                        // Try to extract damage amount from the message
+                        let damageAmount = null;
+
+                        // Try to get damage from rolls first
+                        if (msg.rolls && msg.rolls.length > 0) {
+                            const damageRoll = msg.rolls.find(r => r.constructor?.name === "DamageRoll" || r.formula);
+                            if (damageRoll && damageRoll.total !== undefined) {
+                                damageAmount = Math.floor(damageRoll.total);
+                            }
+                        }
+
+                        // Fallback: parse from content (e.g., "15 damage", "deals 20 damage")
+                        if (damageAmount === null) {
+                            const damageMatch = content.match(/(\d+)\s*(?:points?\s*of\s*)?damage/i);
+                            if (damageMatch) {
+                                damageAmount = parseInt(damageMatch[1]);
+                            }
+                        }
+
+                        const damageText = damageAmount !== null ? ` (took ${damageAmount} damage)` : "";
+                        keyEvents.push({
+                            timestamp: entry.timestamp,
+                            icon: "💀",
+                            text: `${targetActor.name} was reduced to 0 HP!${damageText}`,
+                            importance: "high"
+                        });
+                    }
+                }
+
+                // Fallback: try to parse HP from content (e.g., "HP: 0/25")
+                const hpMatch = content.match(/HP:\s*0+\s*\/\s*\d+/i) || content.match(/\b0\s*\/\s*\d+\s*HP/i);
+                if (hpMatch && !targetActor) {
+                    // HP reached 0 based on content
+                    const actorName = entry.speaker || "Unknown";
+
+                    // Try to extract damage amount
+                    let damageAmount = null;
+                    if (entry.originalMessage?.rolls && entry.originalMessage.rolls.length > 0) {
+                        const damageRoll = entry.originalMessage.rolls.find(r => r.constructor?.name === "DamageRoll" || r.formula);
+                        if (damageRoll && damageRoll.total !== undefined) {
+                            damageAmount = Math.floor(damageRoll.total);
+                        }
+                    }
+
+                    if (damageAmount === null) {
+                        const damageMatch = content.match(/(\d+)\s*(?:points?\s*of\s*)?damage/i);
+                        if (damageMatch) {
+                            damageAmount = parseInt(damageMatch[1]);
+                        }
+                    }
+
+                    const damageText = damageAmount !== null ? ` (took ${damageAmount} damage)` : "";
+                    keyEvents.push({
+                        timestamp: entry.timestamp,
+                        icon: "💀",
+                        text: `${actorName} was reduced to 0 HP!${damageText}`,
+                        importance: "high"
+                    });
+                }
+            }
+
+            // Attack rolls
+            if (entry.category === "combat" && lowerText.includes("attack")) {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "⚔️",
+                    text: displayText,
+                    importance: "medium"
+                });
+            }
+            // Critical hits/successes - check content more thoroughly
+            else if (combinedText.includes("critical")) {
+                if (combinedText.includes("success") || combinedText.includes("hit")) {
+                    keyEvents.push({
+                        timestamp: entry.timestamp,
+                        icon: "💥",
+                        text: `${entry.speaker}: Critical Hit!`,
+                        importance: "medium"
+                    });
+                }
+                // Critical failures
+                else if (combinedText.includes("fail") || combinedText.includes("miss") || combinedText.includes("fumble")) {
+                    keyEvents.push({
+                        timestamp: entry.timestamp,
+                        icon: "💢",
+                        text: `${entry.speaker}: Critical Failure`,
+                        importance: "medium"
+                    });
+                }
+            }
+            // High damage rolls (20+ damage)
+            else if (entry.category === "combat" && lowerText.includes("damage")) {
+                const damageMatch = displayText.match(/\((\d+)\)/);
+                if (damageMatch && parseInt(damageMatch[1]) >= 20) {
+                    keyEvents.push({
+                        timestamp: entry.timestamp,
+                        icon: "💥",
+                        text: displayText,
+                        importance: "medium"
+                    });
+                }
+            }
+            // Level ups
+            else if (lowerText.includes("level") && (lowerText.includes("up") || lowerContent.includes("level up"))) {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "⭐",
+                    text: `${entry.speaker}: Leveled Up`,
+                    importance: "high"
+                });
+            }
+            // Death/unconscious
+            else if (lowerText.includes("dies") || lowerText.includes("death") || lowerText.includes("unconscious") || lowerText.includes("dying")) {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "💀",
+                    text: displayText,
+                    importance: "high"
+                });
+            }
+            // Healing
+            else if (lowerText.includes("heal") && entry.category === "healing") {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "❤️",
+                    text: displayText,
+                    importance: "low"
+                });
+            }
+            // Important items/loot
+            else if ((lowerText.includes("found") || lowerText.includes("discovered") || lowerText.includes("obtained")) &&
+                     (lowerText.includes("item") || lowerText.includes("treasure") || lowerText.includes("gold"))) {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "📦",
+                    text: displayText,
+                    importance: "medium"
+                });
+            }
+            // Spell casts (major spells only - those marked as important in category)
+            else if (entry.category === "important" && displayText.includes("✨")) {
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: "✨",
+                    text: displayText,
+                    importance: "low"
+                });
+            }
+        });
+
+        console.log(`Archive Manager | Found ${keyEvents.length} key events`);
+
+        // Sort by timestamp (chronological order)
+        keyEvents.sort((a, b) => a.timestamp - b.timestamp);
+
+        return {
+            sessionName,
+            sessionNumber,
+            duration,
+            archiveDate: archiveDate.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            }),
+            participants: Array.from(participants),
+            totalMessages: archive.getFlag("chat-trimmer", "originalMessageCount") || 0,
+            totalEntries: entries.length,
+            compressionRatio: archive.getFlag("chat-trimmer", "compressionRatio") || 0,
+            statistics: {
+                combats: stats.totalCombats || 0,
+                dialogues: stats.totalDialogues || 0,
+                rolls: stats.totalRolls || 0,
+                criticalHits: stats.criticalHits || 0,
+                criticalFails: stats.criticalFails || 0,
+            },
+            keyEvents: keyEvents,
+        };
     }
 
     /**
@@ -497,6 +982,7 @@ export class ArchiveManager {
         const archive = await this.getArchive(sessionNumber);
         if (archive) {
             await archive.delete();
+            this.invalidateIndexCache(); // Invalidate cache after deletion
         }
     }
 
@@ -562,7 +1048,5 @@ class VirtualArchive {
         const index = game.settings.get("chat-trimmer", "archiveIndex") || [];
         const newIndex = index.filter(i => i.id !== this.id);
         await game.settings.set("chat-trimmer", "archiveIndex", newIndex);
-
-        ui.notifications.info(game.i18n.localize("CHATTRIMMER.Notifications.ArchiveDeleted"));
     }
 }

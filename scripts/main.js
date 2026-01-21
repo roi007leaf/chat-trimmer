@@ -78,21 +78,106 @@ Hooks.on("renderChatLog", (app, html, data) => {
   // Add trim controls to chat
   const controls = $html.find("#chat-controls");
 
-  if (controls.length > 0 && !controls.find("#trim-chat-btn").length) {
-    const trimmerControls = $(`
-      <a class="chat-control-icon chat-trimmer-btn" id="trim-chat-btn" role="button" data-tooltip="${game.i18n.localize("CHATTRIMMER.Buttons.TrimChat")}" aria-label="${game.i18n.localize("CHATTRIMMER.Buttons.TrimChat")}">
-        <i class="fas fa-compress-alt"></i>
-      </a>
-      <a class="chat-control-icon chat-trimmer-btn" id="view-archives-btn" role="button" data-tooltip="${game.i18n.localize("CHATTRIMMER.Buttons.ViewArchives")}" aria-label="${game.i18n.localize("CHATTRIMMER.Buttons.ViewArchives")}">
+  if (controls.length > 0 && !controls.find("#chat-trimmer-menu-btn").length) {
+    // Single button that opens a menu on right-click
+    const trimmerButton = $(`
+      <a class="chat-control-icon chat-trimmer-menu-btn" id="chat-trimmer-menu-btn" role="button" data-tooltip="Chat Trimmer (Right-click for menu)" aria-label="Chat Trimmer">
         <i class="fas fa-archive"></i>
       </a>
     `);
 
-    controls.append(trimmerControls);
+    controls.append(trimmerButton);
 
-    // Bind events
-    controls.find("#trim-chat-btn").click(onTrimChat);
-    controls.find("#view-archives-btn").click(onViewArchives);
+    // Create custom dropdown menu
+    const customMenu = $(`
+      <div class="chat-trimmer-dropdown">
+        <div class="menu-item" data-action="trim">
+          <i class="fas fa-compress-alt"></i>
+          <span>${game.i18n.localize("CHATTRIMMER.Buttons.TrimChat")}</span>
+        </div>
+        <div class="menu-item" data-action="new-session">
+          <i class="fas fa-plus-circle"></i>
+          <span>${game.i18n.localize("CHATTRIMMER.Buttons.NewSession")}</span>
+        </div>
+      </div>
+    `);
+
+    $("body").append(customMenu);
+
+    // Handle menu item clicks
+    customMenu.find(".menu-item").on("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const action = $(this).data("action");
+
+      // Animate out
+      customMenu.removeClass("show").addClass("hide");
+      setTimeout(() => customMenu.hide(), 150);
+
+      switch(action) {
+        case "trim":
+          onTrimChat({ preventDefault: () => {} });
+          break;
+        case "new-session":
+          onNewSession({ preventDefault: () => {} });
+          break;
+      }
+    });
+
+    // Show menu on right-click
+    trimmerButton.on("contextmenu", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const buttonRect = trimmerButton[0].getBoundingClientRect();
+
+      // Show menu to measure it
+      customMenu.css({ display: "block", visibility: "hidden" }).removeClass("show hide");
+      const menuWidth = customMenu.outerWidth();
+      const menuHeight = customMenu.outerHeight();
+      customMenu.css({ visibility: "visible" });
+
+      // Calculate position: above and to the left of button
+      let left = buttonRect.right - menuWidth;
+      let top = buttonRect.top - menuHeight;
+
+      // Boundary checks
+      const padding = 5;
+
+      if (left < padding) left = padding;
+      if (left + menuWidth > window.innerWidth - padding) {
+        left = window.innerWidth - menuWidth - padding;
+      }
+      if (top < padding) {
+        top = buttonRect.bottom + padding;
+      }
+
+      customMenu.css({
+        position: "fixed",
+        left: `${left}px`,
+        top: `${top}px`
+      });
+
+      // Trigger animation
+      setTimeout(() => customMenu.addClass("show"), 10);
+    });
+
+    // Left-click opens archives directly (most common action)
+    trimmerButton.on("click", (event) => {
+      event.preventDefault();
+      onViewArchives(event);
+    });
+
+    // Close menu when clicking outside
+    $(document).on("click", (event) => {
+      if (!$(event.target).closest(".chat-trimmer-dropdown, .chat-trimmer-menu-btn").length) {
+        if (customMenu.is(":visible")) {
+          customMenu.removeClass("show").addClass("hide");
+          setTimeout(() => customMenu.hide(), 150);
+        }
+      }
+    });
   }
 });
 
@@ -102,12 +187,17 @@ Hooks.on("renderChatLog", (app, html, data) => {
 Hooks.on("createChatMessage", (message, options, userId) => {
   // Check if we should auto-trim
   if (game.settings.get("chat-trimmer", "autoTrimEnable")) {
-    const threshold = game.settings.get("chat-trimmer", "messageThreshold");
+    const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
+    const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
     const messageCount = game.messages.size;
 
-    if (messageCount >= threshold) {
+    // Simple logic: trim when total messages = keep + threshold
+    // Example: keep=3, threshold=5 → trim at 8 messages
+    const trimAt = messagesToKeep + messageThreshold;
+
+    if (messageCount >= trimAt) {
       console.log(
-        `Chat Trimmer | Message threshold reached (${messageCount}/${threshold})`,
+        `Chat Trimmer | Message threshold reached (${messageCount}/${trimAt} = ${messagesToKeep} keep + ${messageThreshold} buffer)`,
       );
       // Auto-trim on next tick to avoid blocking message creation
       setTimeout(() => performAutoTrim(), 100);
@@ -122,41 +212,103 @@ async function onTrimChat(event) {
   event.preventDefault();
 
   const msgCount = game.messages.size;
-  const keepCount = game.settings.get("chat-trimmer", "messagesToKeep");
 
-  // Custom Dialog
-  new Dialog({
-    title: game.i18n.localize("CHATTRIMMER.Buttons.TrimChat"),
+  // AppV2 Dialog
+  new foundry.applications.api.DialogV2({
+    window: {
+      title: game.i18n.localize("CHATTRIMMER.Buttons.TrimChat"),
+    },
     content: `
          <form>
-             <p>This will compress your chat messages into a searchable archive.</p>
-             <p><strong>Current messages:</strong> ${msgCount}</p>
-             <div class="form-group">
-                 <label>Preserve recent messages (${keepCount})?</label>
-                 <input type="checkbox" name="keep" checked />
-             </div>
-             <p><small>The original messages will be deleted, but preserved in the archive.</small></p>
+             <p>This will compress <strong>all ${msgCount} chat messages</strong> into a searchable archive.</p>
+             <p><small>The original messages will be deleted from chat, but preserved in the archive.</small></p>
              <p>Are you sure you want to continue?</p>
          </form>
-         <hr>
       `,
-    buttons: {
-      yes: {
-        label: "Trim",
-        icon: '<i class="fas fa-compress-alt"></i>',
-        callback: async (html) => {
-          const keep = html.find('input[name="keep"]').is(":checked");
-          // Pass ignoreKeep option based on checkbox
-          await chatTrimmer.trim(null, { ignoreKeep: !keep });
-        }
+    buttons: [
+      {
+        action: "trim",
+        label: "Trim All",
+        icon: "fa-solid fa-compress-alt",
+        default: true,
+        callback: async () => {
+          // Always trim all messages when manually triggered
+          await chatTrimmer.trim(null, { ignoreKeep: true });
+        },
       },
-      no: {
+      {
+        action: "cancel",
         label: "Cancel",
-        icon: '<i class="fas fa-times"></i>'
-      }
+        icon: "fa-solid fa-times",
+      },
+    ],
+  }).render({ force: true });
+}
+
+/**
+ * Handle new session button click
+ */
+async function onNewSession(event) {
+  event.preventDefault();
+
+  // Only GM can create new sessions
+  if (!game.user.isGM) {
+    ui.notifications.warn("Only GMs can start new sessions.");
+    return;
+  }
+
+  const currentSession = game.settings.get("chat-trimmer", "currentSessionName");
+  let currentNumber = game.settings.get("chat-trimmer", "currentSessionNumber");
+
+  // Check archive index for the actual highest session number
+  const archiveIndex = game.settings.get("chat-trimmer", "archiveIndex") || [];
+  if (archiveIndex.length > 0) {
+    const highestArchiveSession = Math.max(...archiveIndex.map(a => a.sessionNumber || 0));
+    // Use whichever is higher: the setting or the actual archives
+    currentNumber = Math.max(currentNumber, highestArchiveSession);
+  }
+
+  // AppV2 Dialog
+  new foundry.applications.api.DialogV2({
+    window: {
+      title: game.i18n.localize("CHATTRIMMER.Prompts.NewSessionTitle"),
     },
-    default: "yes"
-  }).render(true);
+    content: `
+      <form>
+        <p>Current session: <strong>${currentSession}</strong></p>
+        <p>Next session will be: <strong>Session ${currentNumber + 1}</strong></p>
+        <p>${game.i18n.localize("CHATTRIMMER.Prompts.NewSessionContent")}</p>
+      </form>
+    `,
+    buttons: [
+      {
+        action: "confirm",
+        label: "Start New Session",
+        icon: "fa-solid fa-check",
+        default: true,
+        callback: async () => {
+          // Increment session
+          const newNumber = currentNumber + 1;
+          const newName = `Session ${newNumber}`;
+
+          await game.settings.set("chat-trimmer", "currentSessionNumber", newNumber);
+          await game.settings.set("chat-trimmer", "currentSessionName", newName);
+          await game.settings.set("chat-trimmer", "currentSessionStartTime", Date.now());
+
+          ui.notifications.info(
+            game.i18n.format("CHATTRIMMER.Notifications.NewSessionStarted", {
+              sessionName: newName,
+            })
+          );
+        },
+      },
+      {
+        action: "cancel",
+        label: "Cancel",
+        icon: "fa-solid fa-times",
+      },
+    ],
+  }).render({ force: true });
 }
 
 /**
@@ -180,15 +332,17 @@ async function checkAutoTrim() {
   if (!game.settings.get("chat-trimmer", "autoTrimEnable")) return;
 
   const messageCount = game.messages.size;
-  const messageThreshold = game.settings.get(
-    "chat-trimmer",
-    "messageThreshold",
-  );
+  const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
+  const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
+
+  // Simple logic: trim when total messages = keep + threshold
+  // Example: keep=3, threshold=5 → trim at 8 messages
+  const trimAt = messagesToKeep + messageThreshold;
 
   // Check message count threshold
-  if (messageCount >= messageThreshold) {
+  if (messageCount >= trimAt) {
     console.log(
-      `Chat Trimmer | Auto-trim triggered by message count (${messageCount}/${messageThreshold})`,
+      `Chat Trimmer | Auto-trim triggered by message count (${messageCount}/${trimAt} = ${messagesToKeep} keep + ${messageThreshold} buffer)`,
     );
     await performAutoTrim();
     return;
@@ -250,7 +404,7 @@ function registerHandlebarsHelpers() {
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: !use24h
+      hour12: !use24h,
     });
   });
 
@@ -323,42 +477,49 @@ Hooks.on("renderSettings", (app, html, data) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const currentSession = game.settings.get("chat-trimmer", "currentSessionName");
+      const currentSession = game.settings.get(
+        "chat-trimmer",
+        "currentSessionName",
+      );
 
-      // Custom Dialog
-      new Dialog({
-        title: "End Session?",
+      // AppV2 Dialog
+      new foundry.applications.api.DialogV2({
+        window: {
+          title: "End Session?",
+        },
         content: `
                     <form>
                         <p>You are returning to setup. Is the session <strong>${currentSession}</strong> finished?</p>
                         <p><small>Ending the session will start a new session count for future archives.</small></p>
                     </form>
                 `,
-        buttons: {
-          end: {
+        buttons: [
+          {
+            action: "end",
             label: "Yes, End Session",
-            icon: '<i class="fas fa-check"></i>',
+            icon: "fa-solid fa-check",
+            default: true,
             callback: async () => {
               // Increment session name
               await incrementSessionName(currentSession);
               game.shutDown();
-            }
+            },
           },
-          no: {
+          {
+            action: "exit",
             label: "No, Just Exit",
-            icon: '<i class="fas fa-times"></i>',
+            icon: "fa-solid fa-times",
             callback: () => {
               game.shutDown();
-            }
+            },
           },
-          cancel: {
+          {
+            action: "cancel",
             label: "Cancel",
-            icon: '<i class="fas fa-ban"></i>'
-            // Do nothing
-          }
-        },
-        default: "end"
-      }).render(true);
+            icon: "fa-solid fa-ban",
+          },
+        ],
+      }).render({ force: true });
     });
   }
 });

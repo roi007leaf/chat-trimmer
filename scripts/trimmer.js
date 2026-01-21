@@ -182,8 +182,11 @@ export class ChatTrimmer {
             // Always add to 'all' category to ensure nothing is lost
             classified.all.push(msg);
 
+            // Cache toLowerCase() operation once per message for performance
+            const contentLower = msg.content.toLowerCase();
+
             // Check message content and flags
-            if (this.isCombatMessage(msg)) {
+            if (this.isCombatMessage(msg, contentLower)) {
                 classified.combat.push(msg);
             }
 
@@ -195,7 +198,7 @@ export class ChatTrimmer {
                 classified.rolls.push(msg);
             }
 
-            if (this.isItemMessage(msg)) {
+            if (this.isItemMessage(msg, contentLower)) {
                 classified.items.push(msg);
             }
 
@@ -208,7 +211,7 @@ export class ChatTrimmer {
             }
 
             // Check if critical (always preserve)
-            if (this.isCriticalMessage(msg)) {
+            if (this.isCriticalMessage(msg, contentLower)) {
                 classified.critical.push(msg);
             }
         }
@@ -219,8 +222,10 @@ export class ChatTrimmer {
     /**
      * Check if message is combat-related
      * Only considers a message as combat if there's an active encounter
+     * @param {Object} msg - The message to check
+     * @param {string} [contentLower] - Pre-computed lowercase content for performance
      */
-    isCombatMessage(msg) {
+    isCombatMessage(msg, contentLower = null) {
         // Strong indicators from flags (always combat-related)
         if (msg.flags?.core?.initiativeRoll) return true;
 
@@ -228,19 +233,26 @@ export class ChatTrimmer {
         const contextType = msg.flags?.pf2e?.context?.type;
         if (contextType === "attack-roll" ||
             contextType === "spell-attack-roll" ||
-            contextType === "saving-throw") {
+            contextType === "saving-throw" ||
+            contextType === "damage-roll") {
             return true;
         }
 
-        // Check active combat for text-based detection
+        // Check active combat
         const hasActiveCombat = game.combat?.started || game.combats?.some((c) => c.started);
 
         if (!hasActiveCombat) {
             return false;
         }
 
-        // If there is active combat, check textual content
-        const content = msg.content.toLowerCase();
+        // If there is active combat:
+        // 1. ANY roll is considered combat-related
+        if (MessageParser.isRoll(msg)) {
+            return true;
+        }
+
+        // 2. Check textual content for combat keywords
+        const content = contentLower ?? msg.content.toLowerCase();
         return (
             content.includes("attack") ||
             content.includes("damage") ||
@@ -269,9 +281,11 @@ export class ChatTrimmer {
 
     /**
      * Check if message is about item transfers
+     * @param {Object} msg - The message to check
+     * @param {string} [contentLower] - Pre-computed lowercase content for performance
      */
-    isItemMessage(msg) {
-        const content = msg.content.toLowerCase();
+    isItemMessage(msg, contentLower = null) {
+        const content = contentLower ?? msg.content.toLowerCase();
         return (
             content.includes("receives") ||
             content.includes("gives") ||
@@ -303,9 +317,11 @@ export class ChatTrimmer {
 
     /**
      * Check if message should always be preserved
+     * @param {Object} msg - The message to check
+     * @param {string} [contentLower] - Pre-computed lowercase content for performance
      */
-    isCriticalMessage(msg) {
-        const content = msg.content.toLowerCase();
+    isCriticalMessage(msg, contentLower = null) {
+        const content = contentLower ?? msg.content.toLowerCase();
         return (
             content.includes("critical hit") ||
             content.includes("critical miss") ||
@@ -375,11 +391,9 @@ export class ChatTrimmer {
             }
         }
 
-        // Add remaining unprocessed messages as individual entries
-        // This ensures no data is lost - everything gets archived
-
-        // Use the 'all' category which contains every message
+        // Get remaining unprocessed messages
         const allMessages = classified.all || [];
+        const unprocessedMessages = allMessages.filter(msg => !processedMessageIds.has(msg.id));
 
         console.log(
             `Chat Trimmer | Processing ${allMessages.length} total classified messages`,
@@ -387,45 +401,77 @@ export class ChatTrimmer {
         console.log(
             `Chat Trimmer | Already processed: ${processedMessageIds.size} messages`,
         );
+        console.log(
+            `Chat Trimmer | Unprocessed messages to add: ${unprocessedMessages.length}`,
+        );
 
-        // Add all unprocessed messages
-        for (const msg of allMessages) {
-            if (!processedMessageIds.has(msg.id)) {
-                const category = this.determineMessageCategory(msg);
-                const displayText = this.formatIndividualDisplay(msg);
-                const icon =
-                    displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
-                const speaker = MessageParser.extractActorName(msg) || "Unknown";
-                const rollData = this.extractRollData(msg);
+        // Add all unprocessed messages individually to preserve chronological order
+        for (const msg of unprocessedMessages) {
+            const categories = this.determineMessageCategories(msg);
+            const category = categories[0]; // Primary category for backward compatibility
+            const displayText = this.formatIndividualDisplay(msg);
+            const icon =
+                displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+            const speaker = MessageParser.extractActorName(msg) || "Unknown";
+            const rollData = this.extractRollData(msg);
 
-                entries.push({
-                    id: foundry.utils.randomID(),
-                    type: "individual",
-                    category: category,
-                    icon: icon,
-                    timestamp: msg.timestamp,
-                    speaker: speaker,
-                    originalMessage: msg.toObject(),
-                    displayText: displayText,
-                    displaySummary: displayText,
-                    content: this.sanitizeContent(msg.content),
-                    rollData: rollData,
-                    searchKeywords: MessageParser.extractKeywords(msg.content),
-                    originalMessageIds: [msg.id],
-                });
+            entries.push({
+                id: foundry.utils.randomID(),
+                type: "individual",
+                category: category, // Primary category (for backward compatibility)
+                categories: categories, // All applicable categories
+                icon: icon,
+                timestamp: msg.timestamp,
+                speaker: speaker,
+                originalMessage: msg.toObject(),
+                displayText: displayText,
+                displaySummary: displayText,
+                content: this.sanitizeContent(msg.content),
+                rollData: rollData,
+                searchKeywords: MessageParser.extractKeywords(msg.content),
+                originalMessageIds: [msg.id],
+            });
 
-                processedMessageIds.add(msg.id);
-            }
+            processedMessageIds.add(msg.id);
         }
 
         console.log(
-            `Chat Trimmer | Total entries after adding unprocessed: ${entries.length}`,
+            `Chat Trimmer | Total entries created: ${entries.length}`,
         );
 
         // Sort by timestamp
         entries.sort((a, b) => a.timestamp - b.timestamp);
 
         return entries;
+    }
+
+    /**
+     * Create an individual entry from a message
+     */
+    createIndividualEntry(msg) {
+        const categories = this.determineMessageCategories(msg);
+        const category = categories[0]; // Primary category for backward compatibility
+        const displayText = this.formatIndividualDisplay(msg);
+        const icon = displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+        const speaker = MessageParser.extractActorName(msg) || "Unknown";
+        const rollData = this.extractRollData(msg);
+
+        return {
+            id: foundry.utils.randomID(),
+            type: "individual",
+            category: category, // Primary category (for backward compatibility)
+            categories: categories, // All applicable categories
+            icon: icon,
+            timestamp: msg.timestamp,
+            speaker: speaker,
+            originalMessage: msg.toObject(),
+            displayText: displayText,
+            displaySummary: displayText,
+            content: this.sanitizeContent(msg.content),
+            rollData: rollData,
+            searchKeywords: MessageParser.extractKeywords(msg.content),
+            originalMessageIds: [msg.id],
+        };
     }
 
     /**
@@ -571,21 +617,14 @@ export class ChatTrimmer {
         const temp = document.createElement("div");
         temp.innerHTML = html;
 
-        // Remove all button elements (they won't work in archives)
-        temp.querySelectorAll("button").forEach((btn) => btn.remove());
+        // Remove buttons and scripts, clean attributes - single DOM traversal for performance
+        temp.querySelectorAll("button, script").forEach((el) => el.remove());
 
-        // Remove script tags
-        temp.querySelectorAll("script").forEach((script) => script.remove());
-
-        // Remove inline event handlers
-        temp.querySelectorAll("[onclick], [onload], [onerror]").forEach((el) => {
+        // Remove inline event handlers and data-action attributes
+        temp.querySelectorAll("[onclick], [onload], [onerror], [data-action]").forEach((el) => {
             el.removeAttribute("onclick");
             el.removeAttribute("onload");
             el.removeAttribute("onerror");
-        });
-
-        // Remove data-action attributes (Foundry click handlers)
-        temp.querySelectorAll("[data-action]").forEach((el) => {
             el.removeAttribute("data-action");
         });
 
@@ -825,20 +864,28 @@ export class ChatTrimmer {
     /**
      * Determine category for a message
      */
-    determineMessageCategory(msg) {
-        // Check if it's combat-related first (includes combat rolls)
+    /**
+     * Determine all applicable categories for a message
+     * Messages can belong to multiple categories (e.g., a combat roll is both "combat" and "rolls")
+     * @param {Object} msg - The message to categorize
+     * @returns {Array<string>} Array of category strings
+     */
+    determineMessageCategories(msg) {
+        const categories = [];
+
+        // Check if it's combat-related (includes combat rolls)
         if (this.isCombatMessage(msg)) {
-            return "combat";
+            categories.push("combat");
         }
 
-        // Check if it's a roll
+        // Check if it's a roll (can be both combat and roll)
         if (MessageParser.isRoll(msg)) {
-            return "rolls";
+            categories.push("rolls");
         }
 
-        // Check for whispers (V12+ way - check whisper property instead of style)
+        // Check for whispers
         if (msg.whisper && msg.whisper.length > 0) {
-            return "whispers";
+            categories.push("whispers");
         }
 
         // Check message style/type
@@ -846,18 +893,18 @@ export class ChatTrimmer {
         const style = msg.style ?? msg.type;
 
         if (style === styles.IC) {
-            return "speech";
+            categories.push("speech");
         }
 
         if (style === styles.EMOTE) {
-            return "emotes";
+            categories.push("emotes");
         }
 
         // Check content for specific keywords
         const content = MessageParser.stripHTML(msg.content).toLowerCase();
 
         if (content.includes("heal")) {
-            return "healing";
+            categories.push("healing");
         }
 
         if (
@@ -865,7 +912,7 @@ export class ChatTrimmer {
             content.includes("gold") ||
             content.includes("loot")
         ) {
-            return "items";
+            categories.push("items");
         }
 
         if (
@@ -873,11 +920,26 @@ export class ChatTrimmer {
             content.includes("level") ||
             content.includes("important")
         ) {
-            return "important";
+            categories.push("important");
         }
 
-        // Default category
-        return "all";
+        // If no categories matched, default to "all"
+        if (categories.length === 0) {
+            categories.push("all");
+        }
+
+        return categories;
+    }
+
+    /**
+     * Determine primary category for a message (for backward compatibility and icon selection)
+     * @param {Object} msg - The message to categorize
+     * @returns {string} Primary category string
+     */
+    determineMessageCategory(msg) {
+        // Get all categories and return the first (primary) one
+        const categories = this.determineMessageCategories(msg);
+        return categories[0];
     }
 
     /**

@@ -20,7 +20,69 @@
 
     {{#if showArchiveBody}}
     <div class="archive-body">
+        {{#if sessionSummary}}
+        <div class="session-summary">
+            <div class="summary-header" data-action="toggleSummary">
+                <h3>{{sessionSummary.sessionName}} Summary</h3>
+                <i class="fas fa-chevron-down toggle-icon {{#if summaryCollapsed}}collapsed{{/if}}"></i>
+            </div>
+            {{#unless summaryCollapsed}}
+            <div class="summary-grid">
+                <div class="summary-section">
+                    <h4>Session Info</h4>
+                    <ul>
+                        <li><strong>Duration:</strong> {{sessionSummary.duration}}</li>
+                        <li><strong>Date:</strong> {{sessionSummary.archiveDate}}</li>
+                        <li><strong>Messages:</strong> {{sessionSummary.totalMessages}} → {{sessionSummary.totalEntries}} entries</li>
+                    </ul>
+                </div>
+                <div class="summary-section">
+                    <h4>Participants</h4>
+                    <ul>
+                        {{#each sessionSummary.participants}}
+                        <li>{{this}}</li>
+                        {{/each}}
+                    </ul>
+                </div>
+                <div class="summary-section">
+                    <h4>Statistics</h4>
+                    <ul>
+                        <li><strong>Combats:</strong> {{sessionSummary.statistics.combats}}</li>
+                        <li><strong>Rolls:</strong> {{sessionSummary.statistics.rolls}}</li>
+                        <li><strong>Critical Hits:</strong> {{sessionSummary.statistics.criticalHits}}</li>
+                        <li><strong>Critical Fails:</strong> {{sessionSummary.statistics.criticalFails}}</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="summary-section key-events">
+                <h4>Key Events (Chronological Order)</h4>
+                {{#if sessionSummary.keyEvents.length}}
+                <ul>
+                    {{#each sessionSummary.keyEvents}}
+                    <li class="key-event">
+                        <span class="event-icon">{{this.icon}}</span>
+                        <span class="event-time">{{formatTime this.timestamp}}</span>
+                        <span class="event-text">{{this.text}}</span>
+                    </li>
+                    {{/each}}
+                </ul>
+                {{else}}
+                <p style="color: var(--color-text-dark-inactive); font-style: italic; padding: 0.5rem;">No significant events detected in this session.</p>
+                {{/if}}
+            </div>
+            {{/unless}}
+        </div>
+        {{/if}}
+
         <div class="archive-controls">
+            <div class="view-mode-toggle">
+                <button type="button" class="view-mode-btn {{#if (eq viewMode 'summary')}}active{{/if}}" data-action="toggleViewMode" data-tooltip="Toggle between Summary Only and Full Archive">
+                    <i class="fas {{#if (eq viewMode 'summary')}}fa-list{{else}}fa-book-open{{/if}}"></i>
+                    {{#if (eq viewMode "summary")}}Summary Only{{else}}Full Archive{{/if}}
+                </button>
+            </div>
+
+            {{#if (eq viewMode "full")}}
             <div class="filter-group">
                 <label>{{localize "CHATTRIMMER.ArchiveViewer.Filter"}}:</label>
                 <select class="category-filter" name="filter">
@@ -55,38 +117,32 @@
             </div>
 
             <div class="search-group">
-                <input 
-                    type="text" 
-                    class="archive-search" 
+                <input
+                    type="text"
+                    class="archive-search"
                     placeholder="{{localize 'CHATTRIMMER.ArchiveViewer.Search'}}"
                     value="{{searchQuery}}"
                     name="search"
                 />
             </div>
+            {{/if}}
         </div>
 
-        <div class="archive-stats">
-            <span>
-                {{localize "CHATTRIMMER.ArchiveViewer.Showing"}} 
-                <strong>{{filteredEntries.length}}</strong> / <strong>{{totalEntries}}</strong>
-            </span>
-            <span>
-                {{localize "CHATTRIMMER.ArchiveViewer.Compression"}}: 
-                <strong>{{compressionRatio}}%</strong>
-            </span>
-        </div>
-
+        {{#if (eq viewMode "full")}}
         <div class="archive-entries">
             {{#each filteredEntries}}
             {{#if this.isHeader}}
-            <div class="archive-group-header">
-                <span class="header-name">{{this.archiveName}}</span>
-                <button type="button" class="header-delete-btn" data-action="deleteSpecificArchive" data-archive-id="{{this.archiveId}}" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteArchive'}}">
+            <div class="archive-group-header" data-archive-id="{{this.archiveId}}">
+                <div class="header-toggle" data-action="toggleArchive">
+                    <i class="fas fa-chevron-down toggle-icon {{#if this.collapsed}}collapsed{{/if}}"></i>
+                    <span class="header-name">{{this.archiveName}}</span>
+                </div>
+                <button type="button" class="header-delete-btn" data-action="deleteSpecificArchive" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteArchive'}}">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
             {{else}}
-            <div class="archive-entry {{this.category}}" data-entry-id="{{this.id}}">
+            <div class="archive-entry {{this.category}} {{#if this.hiddenByCollapse}}hidden{{/if}}" data-entry-id="{{this.id}}">
                 <div class="entry-header" data-action="toggleEntry">
                     <span class="entry-icon">{{this.icon}}</span>
                     <div class="entry-header-content">
@@ -97,6 +153,22 @@
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="entry-content {{#unless this.expanded}}hidden{{/unless}}">
+                    {{#if this.hasSubEntries}}
+                    {{!-- Cluster with sub-entries --}}
+                    <div class="cluster-sub-entries">
+                        {{#each this.subEntries}}
+                        <div class="sub-entry" data-entry-id="{{this.id}}">
+                            <div class="sub-entry-content">
+                                <span class="sub-entry-text">{{this.displayText}}</span>
+                            </div>
+                            <button class="view-original-sub" data-action="viewOriginal" data-message-id="{{this.id}}">
+                                <i class="fas fa-eye"></i> {{localize "CHATTRIMMER.Buttons.ViewOriginal"}}
+                            </button>
+                        </div>
+                        {{/each}}
+                    </div>
+                    {{else}}
+                    {{!-- Regular entry content --}}
                     <div class="entry-original">{{{this.content}}}</div>
                     <div class="entry-actions">
                         {{#if this.rollButtonsHtml}}
@@ -106,6 +178,7 @@
                             <i class="fas fa-eye"></i> {{localize "CHATTRIMMER.Buttons.ViewOriginal"}}
                         </button>
                     </div>
+                    {{/if}}
                 </div>
             </div>
             {{/if}}
@@ -115,6 +188,7 @@
             </div>
             {{/each}}
         </div>
+        {{/if}}
     </div>
     {{else}}
     <div class="no-archive">

@@ -141,6 +141,19 @@ export class SettingsPanel {
             default: "Session 1",
         });
 
+        game.settings.register("chat-trimmer", "currentSessionNumber", {
+            scope: "world",
+            config: false,
+            type: Number,
+            default: 1,
+        });
+
+        game.settings.register("chat-trimmer", "currentSessionStartTime", {
+            scope: "world",
+            config: false,
+            type: Number,
+            default: Date.now(),
+        });
 
         game.settings.register("chat-trimmer", "archiveIndex", {
             scope: "world",
