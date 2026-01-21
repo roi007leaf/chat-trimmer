@@ -77,7 +77,7 @@
 
 .archive-header .archive-select {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(94, 93, 82, 0.3);
   border-radius: 5px;
@@ -85,6 +85,7 @@
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
+  min-height: 38px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -216,13 +217,14 @@
 
 .category-filter {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(94, 93, 82, 0.3);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
+  min-height: 40px;
   color: var(--color-text-light-primary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -244,13 +246,14 @@
 
 .archive-search {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(94, 93, 82, 0.3);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
+  min-height: 40px;
   color: var(--color-text-light-primary);
   transition: all 0.2s ease;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -943,8 +946,8 @@
 }
 
 .summary-section strong {
-  color: rgba(94, 93, 82, 1);
-  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(94, 93, 82, 0.3);
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
   font-size: 0.8rem;
