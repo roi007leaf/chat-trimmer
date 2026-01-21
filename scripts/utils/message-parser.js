@@ -284,25 +284,27 @@ export class MessageParser {
         // Check PF2e flags first (most reliable)
         const contextType = msg.flags?.pf2e?.context?.type;
         if (contextType === "skill-check") {
-            // Try to extract action name and skill from patterns like "Grapple ◆ (Athletics Check)"
-            const actionPattern = /([A-Za-z]+)\s*[◆●○]?\s*\(([A-Za-z]+)\s+Check\)/i;
-            const match = msg.content.match(actionPattern);
+            // PF2e stores action info in flavor field, not content
+            const searchText = msg.flavor || msg.content || "";
 
-            if (match) {
-                const action = match[1]; // e.g., "Grapple"
-                const skill = match[2]; // e.g., "Athletics"
+            // Try to extract action name and skill from patterns like "Grapple" and "(Athletics Check)"
+            // Pattern matches: <strong>ActionName</strong> ... (SkillName Check)
+            const actionMatch = searchText.match(/<strong>([A-Za-z\s]+)<\/strong>/i);
+            const skillMatch = searchText.match(/\(([A-Za-z]+)\s+Check\)/i);
+
+            if (actionMatch && skillMatch) {
+                const action = actionMatch[1].trim(); // e.g., "Grapple"
+                const skill = skillMatch[1]; // e.g., "Athletics"
                 return `${action} (${skill})`;
             }
 
-            // Try to extract just the skill name from "(Skill Check)" pattern
-            const skillPattern = /\(([A-Za-z]+)\s+Check\)/i;
-            const skillMatch = msg.content.match(skillPattern);
-
+            // If we only found the skill
             if (skillMatch) {
                 const skill = skillMatch[1];
                 return `${skill} Check`;
             }
 
+            // Fallback to generic
             return "Skill Check";
         }
         if (contextType === "attack-roll") return "Attack";

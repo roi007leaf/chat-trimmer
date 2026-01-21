@@ -39,7 +39,7 @@
 
   "CHATTRIMMER.Notifications.TrimmingStart": "Trimming chat, please wait...",
   "CHATTRIMMER.Notifications.OriginalNotAvailable": "Original message is not available.",
-  "CHATTRIMMER.Notifications.TrimmingComplete": "Chat trimmed! {original} messages → {compressed} entries ({ratio}% reduction)",
+  "CHATTRIMMER.Notifications.TrimmingComplete": "Chat trimmed! {original} messages",
   "CHATTRIMMER.Notifications.NoMessages": "No messages to trim",
   "CHATTRIMMER.Notifications.NewSessionStarted": "New session started: {sessionName}",
   "CHATTRIMMER.Notifications.AllArchivesDeleted": "All archives deleted successfully",

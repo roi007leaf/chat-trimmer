@@ -175,7 +175,7 @@ export class ArchiveManager {
                 await game.settings.set("chat-trimmer", "archiveIndex", index);
                 this.invalidateIndexCache(); // Invalidate cache after modification
 
-                ui.notifications.info(`${archiveName} created successfully (External JSON).`);
+                // Don't show notification here - let trimmer.js handle final notification
                 return new VirtualArchive(indexEntry);
 
             } catch (err) {
@@ -322,7 +322,7 @@ export class ArchiveManager {
                     this.invalidateIndexCache(); // Invalidate cache after modification
                 }
 
-                ui.notifications.info(`Archive updated: ${data.originalMessageCount} messages added`);
+                // Don't show notification here - let trimmer.js handle final notification
                 return new VirtualArchive({...indexEntry, entries: []});
 
             } catch (err) {
@@ -385,7 +385,7 @@ export class ArchiveManager {
         });
 
         console.log(`Archive Manager | Journal archive updated successfully`);
-        ui.notifications.info(`Archive updated: ${data.originalMessageCount} messages added`);
+        // Don't show notification here - let trimmer.js handle final notification
 
         return archive;
     }

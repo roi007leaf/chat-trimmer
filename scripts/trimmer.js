@@ -27,21 +27,27 @@ export class ChatTrimmer {
             // Get messages if not provided
             if (!messages) {
                 // Get all messages, sorted by timestamp to ensure correct ordering
-                messages = [...game.messages.contents].sort((a, b) => a.timestamp - b.timestamp);
+                messages = [...game.messages.contents].sort(
+                    (a, b) => a.timestamp - b.timestamp,
+                );
             }
 
             // Apply "Messages to Keep" logic (unless ignored or overridden)
             const keepCount = game.settings.get("chat-trimmer", "messagesToKeep");
             if (!options.ignoreKeep && keepCount > 0) {
                 if (messages.length <= keepCount) {
-                    console.log(`Chat Trimmer | Message count (${messages.length}) is within 'Keep' limit (${keepCount}). Skipping trim.`);
+                    console.log(
+                        `Chat Trimmer | Message count (${messages.length}) is within 'Keep' limit (${keepCount}). Skipping trim.`,
+                    );
                     return null;
                 }
 
                 const toKeepCount = keepCount;
                 const toTrimCount = messages.length - keepCount;
 
-                console.log(`Chat Trimmer | Preserving ${toKeepCount} recent messages, trimming ${toTrimCount} older messages`);
+                console.log(
+                    `Chat Trimmer | Preserving ${toKeepCount} recent messages, trimming ${toTrimCount} older messages`,
+                );
 
                 // Keep the last 'keepCount' messages (do not process or delete them)
                 messages = messages.slice(0, messages.length - keepCount);
@@ -56,11 +62,6 @@ export class ChatTrimmer {
                 );
                 return null;
             }
-
-            // Show progress notification
-            ui.notifications.info(
-                game.i18n.localize("CHATTRIMMER.Notifications.TrimmingStart"),
-            );
 
             // 1. Classify messages by type
             const classified = this.classifyMessages(messages);
@@ -143,8 +144,6 @@ export class ChatTrimmer {
             ui.notifications.info(
                 game.i18n.format("CHATTRIMMER.Notifications.TrimmingComplete", {
                     original: messages.length,
-                    compressed: entries.length,
-                    ratio: compressionRatio,
                 }),
             );
 
@@ -231,15 +230,18 @@ export class ChatTrimmer {
 
         // PF2e specific flags
         const contextType = msg.flags?.pf2e?.context?.type;
-        if (contextType === "attack-roll" ||
+        if (
+            contextType === "attack-roll" ||
             contextType === "spell-attack-roll" ||
             contextType === "saving-throw" ||
-            contextType === "damage-roll") {
+            contextType === "damage-roll"
+        ) {
             return true;
         }
 
         // Check active combat
-        const hasActiveCombat = game.combat?.started || game.combats?.some((c) => c.started);
+        const hasActiveCombat =
+            game.combat?.started || game.combats?.some((c) => c.started);
 
         if (!hasActiveCombat) {
             return false;
@@ -393,7 +395,9 @@ export class ChatTrimmer {
 
         // Get remaining unprocessed messages
         const allMessages = classified.all || [];
-        const unprocessedMessages = allMessages.filter(msg => !processedMessageIds.has(msg.id));
+        const unprocessedMessages = allMessages.filter(
+            (msg) => !processedMessageIds.has(msg.id),
+        );
 
         console.log(
             `Chat Trimmer | Processing ${allMessages.length} total classified messages`,
@@ -410,8 +414,7 @@ export class ChatTrimmer {
             const categories = this.determineMessageCategories(msg);
             const category = categories[0]; // Primary category for backward compatibility
             const displayText = this.formatIndividualDisplay(msg);
-            const icon =
-                displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
+            const icon = displayText.match(/^([\u{1F300}-\u{1F9FF}])/u)?.[1] || "📝";
             const speaker = MessageParser.extractActorName(msg) || "Unknown";
             const rollData = this.extractRollData(msg);
 
@@ -435,9 +438,7 @@ export class ChatTrimmer {
             processedMessageIds.add(msg.id);
         }
 
-        console.log(
-            `Chat Trimmer | Total entries created: ${entries.length}`,
-        );
+        console.log(`Chat Trimmer | Total entries created: ${entries.length}`);
 
         // Sort by timestamp
         entries.sort((a, b) => a.timestamp - b.timestamp);
@@ -512,7 +513,7 @@ export class ChatTrimmer {
 
             // Check for PF2e action buttons (spells, strikes, etc.)
             const pf2eActionButtons = temp.querySelectorAll(
-                'button[data-action="spell-damage"], button[data-action="strike-damage"], button[data-action="strike-attack"], button[data-action="strike-critical"], button[data-action="damage"], button[data-action="critical"], button[data-action="target-applyDamage"], button[data-action="target-shieldBlock"], button[data-action="apply-damage"], button[data-action="shield-block"], button[data-action="expand-damage-context"]'
+                'button[data-action="spell-damage"], button[data-action="strike-damage"], button[data-action="strike-attack"], button[data-action="strike-critical"], button[data-action="damage"], button[data-action="critical"], button[data-action="target-applyDamage"], button[data-action="target-shieldBlock"], button[data-action="apply-damage"], button[data-action="shield-block"], button[data-action="expand-damage-context"]',
             );
             if (pf2eActionButtons.length > 0) {
                 console.log(
@@ -621,12 +622,14 @@ export class ChatTrimmer {
         temp.querySelectorAll("button, script").forEach((el) => el.remove());
 
         // Remove inline event handlers and data-action attributes
-        temp.querySelectorAll("[onclick], [onload], [onerror], [data-action]").forEach((el) => {
-            el.removeAttribute("onclick");
-            el.removeAttribute("onload");
-            el.removeAttribute("onerror");
-            el.removeAttribute("data-action");
-        });
+        temp
+            .querySelectorAll("[onclick], [onload], [onerror], [data-action]")
+            .forEach((el) => {
+                el.removeAttribute("onclick");
+                el.removeAttribute("onload");
+                el.removeAttribute("onerror");
+                el.removeAttribute("data-action");
+            });
 
         return temp.innerHTML;
     }
@@ -692,7 +695,7 @@ export class ChatTrimmer {
             const origin = msg.flags.pf2e.origin;
             let actionName = origin?.item?.name || "Damage";
             const outcome = msg.flags.pf2e.context?.outcome;
-            const isCritical = outcome === 'criticalSuccess';
+            const isCritical = outcome === "criticalSuccess";
 
             let rollTotal = "";
             if (msg.rolls && msg.rolls.length > 0) {
@@ -703,7 +706,7 @@ export class ChatTrimmer {
             let labelParts = [];
 
             // Add Item Name if it's not just "Damage"
-            if (actionName.toLowerCase() !== 'damage') {
+            if (actionName.toLowerCase() !== "damage") {
                 labelParts.push(actionName);
             }
 
@@ -793,15 +796,15 @@ export class ChatTrimmer {
             // 1. Try resolving Token name (most specific,handles aliasing)
             if (targetCtx.token) {
                 // If it's a full UUID
-                if (targetCtx.token.startsWith('Scene.')) {
+                if (targetCtx.token.startsWith("Scene.")) {
                     // Try sync lookup from canvas if current scene
-                    const parts = targetCtx.token.split('.');
+                    const parts = targetCtx.token.split(".");
                     if (parts[1] === canvas.scene?.id) {
                         const token = canvas.tokens.get(parts[3]);
                         if (token) return token.name;
                     }
                     // If we have FromUuidSync (v11+)
-                    if (typeof fromUuidSync === 'function') {
+                    if (typeof fromUuidSync === "function") {
                         try {
                             const doc = fromUuidSync(targetCtx.token);
                             if (doc) return doc.name;
@@ -817,12 +820,14 @@ export class ChatTrimmer {
             // 2. Try resolving Actor name
             if (targetCtx.actor) {
                 // Handle "Actor.ID" format
-                const actorId = targetCtx.actor.replace('Actor.', '');
+                const actorId = targetCtx.actor.replace("Actor.", "");
                 const actor = game.actors.get(actorId);
                 if (actor) return actor.name;
 
                 // Try finding a token for this actor on canvas as backup
-                const token = canvas.tokens.placeables.find(t => t.actor?.id === actorId);
+                const token = canvas.tokens.placeables.find(
+                    (t) => t.actor?.id === actorId,
+                );
                 if (token) return token.name;
             }
 
