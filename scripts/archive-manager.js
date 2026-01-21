@@ -477,14 +477,30 @@ export class ArchiveManager {
             criticalFails: 0
         };
 
+        // Track combat encounters: group consecutive combat messages as one encounter
+        // A combat ends when we encounter a non-combat message
+        let inCombat = false;
+
         entries.forEach(entry => {
-            // Count combat entries
-            if (entry.category === "combat" || entry.type === "combat") {
-                stats.totalCombats++;
+            const isCombatEntry = entry.category === "combat" || entry.type === "combat" ||
+                                  (entry.categories && entry.categories.includes("combat"));
+
+            // Count combat encounters based on transitions
+            if (isCombatEntry) {
+                // If we weren't in combat before, this is a new combat encounter
+                if (!inCombat) {
+                    stats.totalCombats++;
+                    inCombat = true;
+                }
+                // If we were already in combat, this is still the same encounter
+            } else {
+                // Non-combat entry ends the current combat
+                inCombat = false;
             }
 
             // Count rolls (entries with rollData or category "rolls")
-            if (entry.rollData || entry.category === "rolls") {
+            if (entry.rollData || entry.category === "rolls" ||
+                (entry.categories && entry.categories.includes("rolls"))) {
                 stats.totalRolls++;
             }
 

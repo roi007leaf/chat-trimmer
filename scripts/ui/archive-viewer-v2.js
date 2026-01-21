@@ -14,10 +14,9 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         this.currentFilter = "all";
         this.searchQuery = "";
         this.expandedEntries = new Set();
-        this.collapsedArchives = new Set(); // Track collapsed archive headers
-        this.seenArchives = new Set(); // Track which archives we've encountered before
         this.summaryCollapsed = false; // Track session summary collapsed state
         this.viewMode = "full"; // "summary" or "full"
+        this._scrollPosition = null; // Track scroll position for preservation
     }
 
     static DEFAULT_OPTIONS = {
@@ -41,14 +40,12 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         },
         actions: {
             toggleEntry: ArchiveViewerV2.prototype.onToggleEntry,
-            toggleArchive: ArchiveViewerV2.prototype.onToggleArchive,
             toggleSummary: ArchiveViewerV2.prototype.onToggleSummary,
             toggleViewMode: ArchiveViewerV2.prototype.onToggleViewMode,
             viewOriginal: ArchiveViewerV2.prototype.onViewOriginal,
             rollButton: ArchiveViewerV2.prototype.onRollButton,
             deleteCurrentArchive: ArchiveViewerV2.prototype.onDeleteCurrentArchive,
             deleteAllArchives: ArchiveViewerV2.prototype.onDeleteAllArchives,
-            deleteSpecificArchive: ArchiveViewerV2.prototype.onDeleteSpecificArchive,
         },
     };
 
@@ -60,6 +57,15 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
     _onRender(context, options) {
         super._onRender(context, options);
+
+        // Restore scroll position if it was preserved
+        if (this._scrollPosition !== null) {
+            const archiveBody = this.element.querySelector(".archive-body");
+            if (archiveBody) {
+                archiveBody.scrollTop = this._scrollPosition;
+            }
+            this._scrollPosition = null; // Clear after restoring
+        }
 
         // Attach event listeners for select elements
         const sessionSelect = this.element.querySelector(".archive-select");
@@ -177,38 +183,6 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             }
             // Sort merged entries by timestamp
             entries.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-            // Insert Headers for Archive boundaries
-            const entriesWithHeaders = [];
-            let lastArchiveId = null;
-
-            for (const entry of entries) {
-                // If this entry belongs to a different archive than the previous one, insert a header
-                if (entry.archiveId && entry.archiveId !== lastArchiveId) {
-                    // Start new archives collapsed by default (only on first encounter)
-                    if (!this.seenArchives.has(entry.archiveId)) {
-                        this.collapsedArchives.add(entry.archiveId);
-                        this.seenArchives.add(entry.archiveId);
-                    }
-
-                    entriesWithHeaders.push({
-                        isHeader: true,
-                        id: `header-${entry.archiveId}-${entriesWithHeaders.length}`,
-                        archiveId: entry.archiveId,
-                        archiveName: entry.archiveName,
-                        timestamp: entry.timestamp,
-                        collapsed: this.collapsedArchives.has(entry.archiveId),
-                    });
-                    lastArchiveId = entry.archiveId;
-                }
-
-                // Add entry, but mark if it should be hidden due to collapsed archive
-                entriesWithHeaders.push({
-                    ...entry,
-                    hiddenByCollapse: this.collapsedArchives.has(entry.archiveId),
-                });
-            }
-            entries = entriesWithHeaders;
         } else {
             console.log("Archive Viewer | No archives found for selection");
         }
@@ -441,53 +415,6 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         };
     }
 
-    async onDeleteSpecificArchive(event, target) {
-        event.preventDefault();
-        // Prevent bubbling to parent if any
-        event.stopPropagation();
-
-        const archiveId =
-            target.dataset.archiveId ||
-            target.closest("[data-archive-id]").dataset.archiveId;
-
-        // Look up the archive - try journal first, then virtual archives with O(1) lookup
-        let archive = game.journal.get(archiveId);
-        if (!archive) {
-            const virtualData = this.archiveManager.getIndexEntry(archiveId);
-            if (virtualData) {
-                // Create VirtualArchive instance temporarily (it has delete method)
-                const allArchives = await this.archiveManager.getAllArchives();
-                archive = allArchives.find((a) => a.id === archiveId);
-            }
-        }
-
-        if (!archive) {
-            ui.notifications.warn("Archive not found.");
-            return;
-        }
-
-        const archiveName =
-            archive.name ||
-            archive.getFlag?.("chat-trimmer", "sessionName") ||
-            "Archive";
-
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: {
-                title: game.i18n.localize("CHATTRIMMER.Buttons.DeleteArchive"),
-            },
-            content: `<p>${game.i18n.localize("CHATTRIMMER.Prompts.DeleteArchiveConfirm")}</p>
-                      <p><strong>${archiveName}</strong></p>`,
-            rejectClose: false,
-            modal: true,
-        });
-
-        if (!confirmed) return;
-
-        await archive.delete();
-        ui.notifications.info(`Archive '${archiveName}' deleted.`);
-        this.render(); // Re-render to update list
-    }
-
     async onToggleEntry(event, target) {
         event.preventDefault();
         event.stopPropagation();
@@ -497,17 +424,10 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         } else {
             this.expandedEntries.add(entryId);
         }
-        this.render();
-    }
-
-    async onToggleArchive(event, target) {
-        event.preventDefault();
-        event.stopPropagation();
-        const archiveId = target.closest("[data-archive-id]").dataset.archiveId;
-        if (this.collapsedArchives.has(archiveId)) {
-            this.collapsedArchives.delete(archiveId);
-        } else {
-            this.collapsedArchives.add(archiveId);
+        // Preserve scroll position before re-rendering
+        const archiveBody = this.element.querySelector(".archive-body");
+        if (archiveBody) {
+            this._scrollPosition = archiveBody.scrollTop;
         }
         this.render();
     }
@@ -516,12 +436,22 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         event.preventDefault();
         event.stopPropagation();
         this.summaryCollapsed = !this.summaryCollapsed;
+        // Preserve scroll position before re-rendering
+        const archiveBody = this.element.querySelector(".archive-body");
+        if (archiveBody) {
+            this._scrollPosition = archiveBody.scrollTop;
+        }
         this.render();
     }
 
     async onToggleViewMode(event, target) {
         event.preventDefault();
         this.viewMode = this.viewMode === "full" ? "summary" : "full";
+        // Preserve scroll position before re-rendering
+        const archiveBody = this.element.querySelector(".archive-body");
+        if (archiveBody) {
+            this._scrollPosition = archiveBody.scrollTop;
+        }
         this.render();
     }
 
