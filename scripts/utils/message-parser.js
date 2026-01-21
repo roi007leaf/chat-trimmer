@@ -287,24 +287,40 @@ export class MessageParser {
             // PF2e stores action info in flavor field, not content
             const searchText = msg.flavor || msg.content || "";
 
-            // Try to extract action name and skill from patterns like "Grapple" and "(Athletics Check)"
-            // Pattern matches: <strong>ActionName</strong> ... (SkillName Check)
+            console.log("Message Parser | Skill check detected:");
+            console.log("  - flavor:", msg.flavor);
+            console.log("  - content:", msg.content);
+
+            // Try to extract action name from <strong> tags (works with HTML)
             const actionMatch = searchText.match(/<strong>([A-Za-z\s]+)<\/strong>/i);
-            const skillMatch = searchText.match(/\(([A-Za-z]+)\s+Check\)/i);
+
+            // For skill name, strip HTML first to avoid tag interference
+            const strippedText = this.stripHTML(searchText);
+            console.log("  - strippedText:", strippedText);
+
+            const skillMatch = strippedText.match(/\(([A-Za-z]+)\s+Check\)/i);
+
+            console.log("  - actionMatch:", actionMatch);
+            console.log("  - skillMatch:", skillMatch);
 
             if (actionMatch && skillMatch) {
                 const action = actionMatch[1].trim(); // e.g., "Grapple"
                 const skill = skillMatch[1]; // e.g., "Athletics"
-                return `${action} (${skill})`;
+                const result = `${action} (${skill})`;
+                console.log("  - result:", result);
+                return result;
             }
 
             // If we only found the skill
             if (skillMatch) {
                 const skill = skillMatch[1];
-                return `${skill} Check`;
+                const result = `${skill} Check`;
+                console.log("  - result (skill only):", result);
+                return result;
             }
 
             // Fallback to generic
+            console.log("  - result: Skill Check (fallback)");
             return "Skill Check";
         }
         if (contextType === "attack-roll") return "Attack";
