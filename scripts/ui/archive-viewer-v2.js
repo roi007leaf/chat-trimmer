@@ -17,6 +17,8 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         this.summaryCollapsed = false; // Track session summary collapsed state
         this.viewMode = "full"; // "summary" or "full"
         this._scrollPosition = null; // Track scroll position for preservation
+        this.currentPage = 1; // Current page for pagination
+        this.PAGE_SIZE = 100; // Entries per page
     }
 
     static DEFAULT_OPTIONS = {
@@ -46,6 +48,10 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             rollButton: ArchiveViewerV2.prototype.onRollButton,
             deleteCurrentArchive: ArchiveViewerV2.prototype.onDeleteCurrentArchive,
             deleteAllArchives: ArchiveViewerV2.prototype.onDeleteAllArchives,
+            nextPage: ArchiveViewerV2.prototype.onNextPage,
+            prevPage: ArchiveViewerV2.prototype.onPrevPage,
+            firstPage: ArchiveViewerV2.prototype.onFirstPage,
+            lastPage: ArchiveViewerV2.prototype.onLastPage,
         },
     };
 
@@ -75,6 +81,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         if (sessionSelect) {
             sessionSelect.addEventListener("change", (e) => {
                 this.currentSession = e.target.value;
+                this.currentPage = 1; // Reset to first page when changing session
                 this.render();
             });
         }
@@ -82,6 +89,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         if (filterSelect) {
             filterSelect.addEventListener("change", (e) => {
                 this.currentFilter = e.target.value;
+                this.currentPage = 1; // Reset to first page when changing filter
                 this.render();
             });
         }
@@ -95,6 +103,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             // Trigger search (render) only on Enter
             searchInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
+                    this.currentPage = 1; // Reset to first page when searching
                     this.render();
                 }
             });
@@ -325,6 +334,26 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             };
         });
 
+        // Store total filtered entries count before pagination
+        const totalFilteredEntries = entries.length;
+
+        // Apply pagination
+        const totalPages = Math.ceil(entries.length / this.PAGE_SIZE);
+        this.totalPages = totalPages; // Store for action handlers
+
+        // Reset to page 1 if current page is out of bounds
+        if (this.currentPage > totalPages && totalPages > 0) {
+            this.currentPage = 1;
+        }
+
+        const startIdx = (this.currentPage - 1) * this.PAGE_SIZE;
+        const endIdx = startIdx + this.PAGE_SIZE;
+        const paginatedEntries = entries.slice(startIdx, endIdx);
+
+        console.log(
+            `Archive Viewer | Pagination: Page ${this.currentPage}/${totalPages}, showing ${paginatedEntries.length} of ${totalFilteredEntries} entries`,
+        );
+
         // Calculate Statistics and Ratio based on targetArchives
         let originalCount = 0;
         let compressedCount = 0;
@@ -398,7 +427,8 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             currentSession: this.currentSession,
             currentFilter: this.currentFilter,
             searchQuery: this.searchQuery,
-            filteredEntries: entries,
+            filteredEntries: paginatedEntries,
+            totalFilteredEntries,
             totalEntries,
             compressionRatio,
             statistics,
@@ -409,9 +439,16 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
                 id: a.id,
                 name: a.name,
             })),
-            hasEntries: entries.length > 0,
+            hasEntries: paginatedEntries.length > 0,
             hasArchives,
             showArchiveBody,
+            // Pagination data
+            currentPage: this.currentPage,
+            totalPages: totalPages,
+            hasPrevPage: this.currentPage > 1,
+            hasNextPage: this.currentPage < totalPages,
+            pageStart: totalFilteredEntries > 0 ? startIdx + 1 : 0,
+            pageEnd: Math.min(endIdx, totalFilteredEntries),
         };
     }
 
@@ -878,8 +915,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             window: {
                 title: game.i18n.localize("CHATTRIMMER.Buttons.DeleteCurrentArchive"),
             },
-            content: `<p>Are you sure you want to delete the session <strong>${this.currentSession}</strong>?</p>
-                      <p>This includes <strong>${targets.length}</strong> archive(s). This action cannot be undone.</p>`,
+            content: `<p>Are you sure you want to delete the session <strong>${this.currentSession}</strong>?</p>`,
             rejectClose: false,
             modal: true,
         });
@@ -937,6 +973,38 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
         // Re-render the viewer
         this.render({ force: true });
+    }
+
+    async onNextPage(event) {
+        event.preventDefault();
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.render();
+        }
+    }
+
+    async onPrevPage(event) {
+        event.preventDefault();
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.render();
+        }
+    }
+
+    async onFirstPage(event) {
+        event.preventDefault();
+        if (this.currentPage !== 1) {
+            this.currentPage = 1;
+            this.render();
+        }
+    }
+
+    async onLastPage(event) {
+        event.preventDefault();
+        if (this.currentPage !== this.totalPages) {
+            this.currentPage = this.totalPages;
+            this.render();
+        }
     }
 
     sanitizeMessageContent(html) {

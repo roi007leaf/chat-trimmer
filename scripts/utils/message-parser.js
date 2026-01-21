@@ -281,17 +281,39 @@ export class MessageParser {
         const flavor = msg.flavor?.toLowerCase() || "";
         const combined = content + " " + flavor;
 
-        // Check for specific roll types
-        if (combined.includes("initiative")) return "Initiative";
-        if (combined.includes("attack") || combined.includes("strike"))
-            return "Attack";
-        if (combined.includes("damage")) return "Damage";
-        if (combined.includes("save") || combined.includes("saving throw"))
-            return "Saving Throw";
-        if (combined.includes("perception")) return "Perception";
-        if (combined.includes("stealth")) return "Stealth";
-        if (combined.includes("skill check")) return "Skill Check";
+        // Check PF2e flags first (most reliable)
+        const contextType = msg.flags?.pf2e?.context?.type;
+        if (contextType === "skill-check") {
+            // Try to extract action name and skill from patterns like "Grapple ◆ (Athletics Check)"
+            const actionPattern = /([A-Za-z]+)\s*[◆●○]?\s*\(([A-Za-z]+)\s+Check\)/i;
+            const match = msg.content.match(actionPattern);
 
+            if (match) {
+                const action = match[1]; // e.g., "Grapple"
+                const skill = match[2]; // e.g., "Athletics"
+                return `${action} (${skill})`;
+            }
+
+            // Try to extract just the skill name from "(Skill Check)" pattern
+            const skillPattern = /\(([A-Za-z]+)\s+Check\)/i;
+            const skillMatch = msg.content.match(skillPattern);
+
+            if (skillMatch) {
+                const skill = skillMatch[1];
+                return `${skill} Check`;
+            }
+
+            return "Skill Check";
+        }
+        if (contextType === "attack-roll") return "Attack";
+        if (contextType === "spell-attack-roll") return "Spell Attack";
+        if (contextType === "damage-roll") return "Damage";
+        if (contextType === "saving-throw") return "Saving Throw";
+
+        // Check for initiative
+        if (combined.includes("initiative")) return "Initiative";
+
+        // Check for skill-specific keywords BEFORE generic "attack" check
         // Common skills (PF2e and D&D 5e)
         const skills = [
             "acrobatics",
@@ -322,6 +344,45 @@ export class MessageParser {
                 return skill.charAt(0).toUpperCase() + skill.slice(1);
             }
         }
+
+        // Check for "skill check" or "(check)" pattern and try to identify specifics
+        if (combined.includes("skill check") || combined.includes("check)")) {
+            // Try to extract action name and skill from patterns like "Grapple (Athletics Check)"
+            const actionPattern = /([A-Za-z]+)\s*[◆●○]?\s*\(([A-Za-z]+)\s+Check\)/i;
+            const match = msg.content.match(actionPattern);
+
+            if (match) {
+                const action = match[1]; // e.g., "Grapple"
+                const skill = match[2]; // e.g., "Athletics"
+                return `${action} (${skill})`;
+            }
+
+            // Try to extract just the skill name from "(Skill Check)" pattern
+            const skillPattern = /\(([A-Za-z]+)\s+Check\)/i;
+            const skillMatch = msg.content.match(skillPattern);
+
+            if (skillMatch) {
+                const skill = skillMatch[1];
+                return `${skill} Check`;
+            }
+
+            return "Skill Check";
+        }
+
+        // Check for specific roll types
+        if (combined.includes("perception")) return "Perception";
+        if (combined.includes("stealth")) return "Stealth";
+
+        // Check saves before damage (saving throw contains "save")
+        if (combined.includes("save") || combined.includes("saving throw"))
+            return "Saving Throw";
+
+        // Check damage before attack (some attacks contain "damage" in description)
+        if (combined.includes("damage")) return "Damage";
+
+        // Check attack/strike LAST to avoid false positives on skill checks
+        if (combined.includes("attack") || combined.includes("strike"))
+            return "Attack";
 
         // Check for ability checks
         const abilities = [

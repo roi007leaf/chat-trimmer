@@ -532,40 +532,39 @@
   box-shadow: 0 2px 4px var(--color-shadow-primary);
 }
 
-/* Override text colors for better contrast in dialog */
-/* Only override text on light backgrounds, preserve light text on dark backgrounds */
+/* Override text colors only where needed for better contrast in dialog */
+/* Preserve light text on dark background elements, force dark text on light backgrounds */
 
-/* Headers and speaker names on light backgrounds */
-.original-messages-dialog .chat-message .message-sender,
-.original-messages-dialog .chat-message .sender-name,
-.original-messages-dialog .chat-message header .sender-name,
-.original-messages-dialog .chat-message .message-header .sender-name,
-.original-messages-dialog .chat-message header.message-header .sender-name,
-.original-messages-dialog .chat-message header .flavor-text,
-.original-messages-dialog .chat-message .flavor-text,
-.original-messages-dialog .chat-message h3,
-.original-messages-dialog .chat-message h4,
-.original-messages-dialog .chat-message .message-content > p,
-.original-messages-dialog .chat-message .message-content > div {
-  color: #191813 !important;
+/* Force light text on known dark background elements */
+.original-messages-dialog .chat-message button,
+.original-messages-dialog .chat-message .tag,
+.original-messages-dialog .chat-message .tags,
+.original-messages-dialog .chat-message [class*="tag"],
+.original-messages-dialog .chat-message [class*="trait"],
+.original-messages-dialog .chat-message .dice-roll,
+.original-messages-dialog .chat-message .dice-formula,
+.original-messages-dialog .chat-message .dice-total,
+.original-messages-dialog .chat-message .dice-tooltip,
+.original-messages-dialog .chat-message [style*="background: rgb"],
+.original-messages-dialog .chat-message [style*="background:rgb"],
+.original-messages-dialog .chat-message [style*="background-color: rgb"],
+.original-messages-dialog .chat-message [style*="background-color:rgb"],
+.original-messages-dialog .chat-message [data-visibility],
+.original-messages-dialog .chat-message [data-visibility-gm],
+.original-messages-dialog .chat-message .card-header,
+.original-messages-dialog .chat-message .card-content header {
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
-/* Metadata in slightly lighter shade */
-.original-messages-dialog .chat-message .message-metadata,
-.original-messages-dialog .chat-message .message-timestamp {
-  color: #4b4a44 !important;
-}
-
-/* DO NOT override colors on dark background elements - let them use light text */
-/* These elements have dark backgrounds and should keep their light text */
-.original-messages-dialog .chat-message .dice-roll .dice-formula,
-.original-messages-dialog .chat-message .dice-roll .dice-result[data-visibility],
-.original-messages-dialog .chat-message .dice-tooltip .part-formula,
-.original-messages-dialog .chat-message .dice-tooltip .instance,
-.original-messages-dialog .chat-message .traits .tag,
-.original-messages-dialog .chat-message [class*="trait-"],
-.original-messages-dialog .chat-message .damage-type {
-  color: revert !important;
+/* Ensure nested elements within dark backgrounds also have light text */
+.original-messages-dialog .chat-message button *,
+.original-messages-dialog .chat-message .tag *,
+.original-messages-dialog .chat-message .dice-roll *,
+.original-messages-dialog .chat-message .dice-formula *,
+.original-messages-dialog .chat-message .dice-tooltip *,
+.original-messages-dialog .chat-message [data-visibility] *,
+.original-messages-dialog .chat-message [data-visibility-gm] * {
+  color: inherit !important;
 }
 
 .original-messages,
@@ -1123,4 +1122,75 @@
   flex: 1;
   font-size: 13px;
   font-weight: 500;
+}
+
+/* Pagination Styles */
+.archive-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-top: 1px solid rgba(94, 93, 82, 0.3);
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-info {
+  color: var(--color-text-light-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, rgba(94, 93, 82, 0.6) 0%, rgba(74, 73, 65, 0.5) 100%);
+  color: var(--color-text-light-primary);
+  border: 1px solid rgba(94, 93, 82, 0.4);
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(94, 93, 82, 0.8) 0%, rgba(74, 73, 65, 0.7) 100%);
+  border-color: rgba(94, 93, 82, 0.6);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.pagination-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(94, 93, 82, 0.3);
+  border-color: rgba(94, 93, 82, 0.2);
+}
+
+.pagination-page {
+  padding: 0 12px;
+  color: var(--color-text-light-primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(94, 93, 82, 0.3);
 }

@@ -141,6 +141,29 @@
             </div>
             {{/each}}
         </div>
+
+        {{#if (gt totalPages 1)}}
+        <div class="archive-pagination">
+            <div class="pagination-info">
+                Showing {{pageStart}}-{{pageEnd}} of {{totalFilteredEntries}} entries
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" data-action="firstPage" {{#unless hasPrevPage}}disabled{{/unless}} data-tooltip="First Page">
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button class="pagination-btn" data-action="prevPage" {{#unless hasPrevPage}}disabled{{/unless}} data-tooltip="Previous Page">
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                <span class="pagination-page">Page {{currentPage}} / {{totalPages}}</span>
+                <button class="pagination-btn" data-action="nextPage" {{#unless hasNextPage}}disabled{{/unless}} data-tooltip="Next Page">
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="pagination-btn" data-action="lastPage" {{#unless hasNextPage}}disabled{{/unless}} data-tooltip="Last Page">
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        </div>
+        {{/if}}
         {{/if}}
     </div>
     {{else}}
