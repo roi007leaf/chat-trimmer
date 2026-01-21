@@ -20,7 +20,7 @@ export class MessageParser {
         // Try to extract from content
         const strippedContent = this.stripHTML(msg.content);
         const match = strippedContent.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
-        return match ? match[1] : null;
+        return match ? match[1] : "Unknown";
     }
 
     /**
