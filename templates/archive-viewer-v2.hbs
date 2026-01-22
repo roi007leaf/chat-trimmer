@@ -3,7 +3,7 @@
         <h2>{{localize "CHATTRIMMER.ArchiveViewer.Title"}}</h2>
         <div class="archive-header-controls">
             <select class="archive-select" name="session">
-                {{#each archives}}
+                {{#each sessionOptions}}
                 <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>
                     {{this.label}}
                 </option>

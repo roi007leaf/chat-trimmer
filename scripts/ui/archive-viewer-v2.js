@@ -137,10 +137,10 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         }
 
         // Format sessions for dropdown
-        const archives = []; // This variable name maps to 'archives' in context/template
+        const sessionOptions = [];
 
         for (const [name, list] of sessionGroups) {
-            archives.push({
+            sessionOptions.push({
                 id: name,
                 label: `${name}`,
                 selected: this.currentSession === name,
@@ -159,7 +159,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         }
 
         // Update selection state in dropdown list
-        archives.forEach((a) => (a.selected = a.id === this.currentSession));
+        sessionOptions.forEach((a) => (a.selected = a.id === this.currentSession));
 
         // Get entries based on selection
         let entries = [];
@@ -427,7 +427,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
         return {
             ...context,
-            archives,
+            sessionOptions,
             currentArchive,
             currentSession: this.currentSession,
             currentFilter: this.currentFilter,
