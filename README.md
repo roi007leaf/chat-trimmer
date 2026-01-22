@@ -117,7 +117,7 @@ SESSION SUMMARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Duration: 2h 15m
 Participants: Bob, Alice, GM
-Combats: 2 | Rolls: 47 | Critical Hits: 3
+Combats: 2 | Rolls: 47 | Critical Successes: 3
 
 KEY EVENTS:
 💥 15:35 - Alice: Critical Success! Grapple (Athletics): 45

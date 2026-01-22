@@ -265,7 +265,7 @@ export class ArchiveManager {
             totalDialogues: (existingStats.totalDialogues || 0) + (data.stats?.totalDialogues || 0),
             totalSkillChecks: (existingStats.totalSkillChecks || 0) + (data.stats?.totalSkillChecks || 0),
             totalRolls: (existingStats.totalRolls || 0) + (data.stats?.totalRolls || 0),
-            criticalHits: (existingStats.criticalHits || 0) + (data.stats?.criticalHits || 0),
+            criticalSuccesses: (existingStats.criticalSuccesses || 0) + (data.stats?.criticalSuccesses || 0),
             criticalFails: (existingStats.criticalFails || 0) + (data.stats?.criticalFails || 0),
             itemsTransferred: (existingStats.itemsTransferred || 0) + (data.stats?.itemsTransferred || 0),
             xpAwarded: (existingStats.xpAwarded || 0) + (data.stats?.xpAwarded || 0),
@@ -473,7 +473,7 @@ export class ArchiveManager {
         const stats = {
             totalCombats: 0,
             totalRolls: 0,
-            criticalHits: 0,
+            criticalSuccesses: 0,
             criticalFails: 0
         };
 
@@ -504,16 +504,23 @@ export class ArchiveManager {
                 stats.totalRolls++;
             }
 
-            // Count critical hits and fails from content
+            // Count critical hits and fails from content, displayText, AND flavor
+            // PF2e stores critical success/failure text in the flavor field
             const content = (entry.content || "").toLowerCase();
             const displayText = (entry.displayText || entry.displaySummary || "").toLowerCase();
-            const searchText = `${content} ${displayText}`;
+            const flavor = (entry.originalMessage?.flavor || "").toLowerCase();
+            const searchText = `${content} ${displayText} ${flavor}`;
 
             if (searchText.includes("critical")) {
-                if (searchText.includes("success") || searchText.includes("hit")) {
-                    stats.criticalHits++;
-                } else if (searchText.includes("fail") || searchText.includes("miss") || searchText.includes("fumble")) {
+                // Check for critical FAILURES first (more specific patterns)
+                if (searchText.includes("critical fail") || searchText.includes("critical miss") ||
+                    searchText.includes("fumble") || searchText.includes("criticalfailure")) {
                     stats.criticalFails++;
+                }
+                // Then check for critical SUCCESSES
+                else if (searchText.includes("critical success") || searchText.includes("critical hit") ||
+                         searchText.includes("criticalsuccess")) {
+                    stats.criticalSuccesses++;
                 }
             }
         });
@@ -534,9 +541,10 @@ export class ArchiveManager {
         entries.forEach(entry => {
             const displayText = entry.displayText || entry.displaySummary || "";
             const content = entry.content || "";
+            const flavor = entry.originalMessage?.flavor?.toLowerCase() || "";
             const lowerText = displayText.toLowerCase();
             const lowerContent = content.toLowerCase();
-            const combinedText = `${lowerText} ${lowerContent}`;
+            const combinedText = `${lowerText} ${lowerContent} ${flavor}`;
 
             // PRIORITY: Check if entry is explicitly marked as a key event
             if (entry.isKeyEvent === true) {
@@ -785,7 +793,7 @@ export class ArchiveManager {
                 combats: stats.totalCombats || 0,
                 dialogues: stats.totalDialogues || 0,
                 rolls: stats.totalRolls || 0,
-                criticalHits: stats.criticalHits || 0,
+                criticalSuccesses: stats.criticalSuccesses || 0,
                 criticalFails: stats.criticalFails || 0,
             },
             keyEvents: keyEvents,
@@ -951,7 +959,7 @@ export class ArchiveManager {
             <ul>
                 <li><strong>Combat Encounters:</strong> ${stats.totalCombats || 0}</li>
                 <li><strong>Total Rolls:</strong> ${stats.totalRolls || 0}</li>
-                <li><strong>Critical Hits:</strong> ${stats.criticalHits || 0}</li>
+                <li><strong>Critical Successes:</strong> ${stats.criticalSuccesses || 0}</li>
                 <li><strong>Critical Failures:</strong> ${stats.criticalFails || 0}</li>
             </ul>
             
@@ -1034,7 +1042,7 @@ export class ArchiveManager {
             html += "<p><strong>Statistics:</strong><br>\n";
             html += `Damage Dealt: ${combat.stats.totalDamageDealt || 0}<br>\n`;
             html += `Damage Taken: ${combat.stats.totalDamageTaken || 0}<br>\n`;
-            html += `Critical Hits: ${combat.stats.criticalHits || 0}\n`;
+            html += `Critical Successes: ${combat.stats.criticalSuccesses || 0}\n`;
             html += "</p>\n";
         }
 

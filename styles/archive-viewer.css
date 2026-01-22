@@ -217,18 +217,26 @@
 
 .category-filter {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 14px;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(94, 93, 82, 0.3);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.6;
+  height: auto;
   min-height: 40px;
   color: var(--color-text-light-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="rgba(255,255,255,0.7)" d="M6 9L1 4h10z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 
 .category-filter:hover {

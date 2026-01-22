@@ -408,9 +408,31 @@ function registerHandlebarsHelpers() {
     });
   });
 
+  // Remove duplicate speaker name from display text
+  Handlebars.registerHelper("removeDuplicateSpeaker", function (text, speaker) {
+    if (!text || !speaker) return text || "";
+
+    // Check if text starts with "SpeakerName: " or "SpeakerName "
+    const colonPattern = `${speaker}: `;
+    const spacePattern = `${speaker} `;
+
+    if (text.startsWith(colonPattern)) {
+      return text.substring(colonPattern.length);
+    } else if (text.startsWith(spacePattern)) {
+      return text.substring(spacePattern.length);
+    }
+
+    return text;
+  });
+
   // JSON stringify helper
   Handlebars.registerHelper("json", function (context, indent) {
     return JSON.stringify(context, null, indent);
+  });
+
+  // Greater than helper (for pagination)
+  Handlebars.registerHelper("gt", function (a, b) {
+    return a > b;
   });
 
   // Register partials

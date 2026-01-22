@@ -142,7 +142,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         for (const [name, list] of sessionGroups) {
             archives.push({
                 id: name,
-                label: `${name} (${list.length} archives)`,
+                label: `${name}`,
                 selected: this.currentSession === name,
             });
         }
@@ -211,6 +211,9 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         }
 
         const totalEntries = entries.length;
+
+        // Save unfiltered entries for session summary generation
+        const unfilteredEntries = [...entries];
 
         // Apply filter - check if entry has the selected category
         // Support both new multi-category system and legacy single category
@@ -364,7 +367,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             "totalDialogues",
             "totalSkillChecks",
             "totalRolls",
-            "criticalHits",
+            "criticalSuccesses",
             "criticalFails",
             "itemsTransferred",
             "xpAwarded",
@@ -408,8 +411,10 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         // Generate session summary if viewing a specific session
         let sessionSummary = null;
         if (this.currentSession && targetArchives.length > 0) {
-            // Filter out header entries before passing to summary generation
-            const entriesWithoutHeaders = entries.filter((e) => !e.isHeader);
+            // Use unfiltered entries for session summary so key events aren't affected by filters
+            const entriesWithoutHeaders = unfilteredEntries.filter(
+                (e) => !e.isHeader,
+            );
             sessionSummary = await this.archiveManager.generateSessionSummary(
                 targetArchives[0],
                 entriesWithoutHeaders,

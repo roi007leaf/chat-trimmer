@@ -12,6 +12,7 @@ export class ChatTrimmer {
             combat: new CombatDetector(),
         };
         this.archiveManager = new ArchiveManager();
+        this._isTrimming = false; // Lock to prevent concurrent trim operations
     }
 
     /**
@@ -21,7 +22,14 @@ export class ChatTrimmer {
      * @returns {Object} Archive summary
      */
     async trim(messages = null, options = {}) {
+        // Prevent concurrent trim operations (race condition protection)
+        if (this._isTrimming) {
+            console.log("Chat Trimmer | Trim already in progress, skipping");
+            return null;
+        }
+
         try {
+            this._isTrimming = true;
             console.log("Chat Trimmer | Starting trim operation");
 
             // Get messages if not provided
@@ -158,6 +166,8 @@ export class ChatTrimmer {
                 "An error occurred while trimming chat. Check console for details.",
             );
             return null;
+        } finally {
+            this._isTrimming = false; // Always release lock
         }
     }
 
@@ -241,7 +251,7 @@ export class ChatTrimmer {
 
         // Check active combat
         const hasActiveCombat =
-            game.combat?.started || game.combats?.some((c) => c.started);
+            game.combat?.active || game.combats?.some((c) => c.active);
 
         if (!hasActiveCombat) {
             return false;
@@ -343,6 +353,8 @@ export class ChatTrimmer {
      */
     isKeyEvent(msg, contentLower = null) {
         const content = contentLower ?? msg.content.toLowerCase();
+        const flavor = msg.flavor?.toLowerCase() || "";
+        const combined = content + " " + flavor; // Check both content and flavor
 
         // 1. Critical successes and failures on rolls
         const outcome = msg.flags?.pf2e?.context?.outcome;
@@ -354,16 +366,19 @@ export class ChatTrimmer {
             return true;
         }
 
-        // Check content for critical indicators
+        // Check content AND flavor for critical indicators (PF2e stores this in flavor)
+        // Also check for PF2e CSS classes in HTML
         if (
-            content.includes("critical success") ||
-            content.includes("critical hit") ||
-            content.includes("critical failure") ||
-            content.includes("critical miss") ||
-            content.includes("fumble")
+            combined.includes("critical success") ||
+            combined.includes("critical hit") ||
+            combined.includes("critical failure") ||
+            combined.includes("critical miss") ||
+            combined.includes("fumble") ||
+            combined.includes('class="criticalsuccess"') ||
+            combined.includes('class="criticalfailure"')
         ) {
             console.log("Chat Trimmer | Key Event detected (critical):", {
-                content: content.substring(0, 100),
+                text: combined.substring(0, 100),
                 speaker: msg.speaker?.alias,
             });
             return true;
@@ -371,30 +386,30 @@ export class ChatTrimmer {
 
         // 2. Dying, death, unconscious, and wounded conditions
         if (
-            content.includes("dying") ||
-            content.includes("death") ||
-            content.includes("dies") ||
-            content.includes("dead") ||
-            content.includes("unconscious") ||
-            content.includes("knocked out") ||
-            content.includes("wounded")
+            combined.includes("dying") ||
+            combined.includes("death") ||
+            combined.includes("dies") ||
+            combined.includes("dead") ||
+            combined.includes("unconscious") ||
+            combined.includes("knocked out") ||
+            combined.includes("wounded")
         ) {
             return true;
         }
 
         // 3. Death saves (Recovery Checks in PF2e)
         if (
-            content.includes("death save") ||
-            content.includes("recovery check") ||
-            content.includes("stabilize")
+            combined.includes("death save") ||
+            combined.includes("recovery check") ||
+            combined.includes("stabilize")
         ) {
             return true;
         }
 
         // 4. Hero Point usage
         if (
-            content.includes("hero point") ||
-            content.includes("hero points") ||
+            combined.includes("hero point") ||
+            combined.includes("hero points") ||
             msg.flags?.pf2e?.context?.heroPoints
         ) {
             return true;
@@ -408,70 +423,70 @@ export class ChatTrimmer {
             }
         }
 
-        // Also check content for high-level spell indicators
-        const spellLevelMatch = content.match(/\b(\d+)(?:st|nd|rd|th)[-\s]?level spell/i);
+        // Also check content+flavor for high-level spell indicators
+        const spellLevelMatch = combined.match(/\b(\d+)(?:st|nd|rd|th)[-\s]?level spell/i);
         if (spellLevelMatch && parseInt(spellLevelMatch[1]) >= 4) {
             return true;
         }
 
         // 6. XP gains and level ups
         if (
-            content.includes("xp") ||
-            content.includes("experience") ||
-            content.includes("level up") ||
-            content.includes("gained a level") ||
-            content.includes("leveled up")
+            combined.includes("xp") ||
+            combined.includes("experience") ||
+            combined.includes("level up") ||
+            combined.includes("gained a level") ||
+            combined.includes("leveled up")
         ) {
             return true;
         }
 
         // 7. Major item transfers and loot
         // Check for significant gold amounts (100+) or notable item keywords
-        const goldMatch = content.match(/(\d+)\s*(?:gold|gp|pp|platinum)/i);
+        const goldMatch = combined.match(/(\d+)\s*(?:gold|gp|pp|platinum)/i);
         if (goldMatch && parseInt(goldMatch[1]) >= 100) {
             return true;
         }
 
         if (
-            content.includes("treasure") ||
-            content.includes("loot") ||
-            content.includes("artifact") ||
-            content.includes("relic") ||
-            content.includes("legendary") ||
-            content.includes("unique item")
+            combined.includes("treasure") ||
+            combined.includes("loot") ||
+            combined.includes("artifact") ||
+            combined.includes("relic") ||
+            combined.includes("legendary") ||
+            combined.includes("unique item")
         ) {
             return true;
         }
 
         // 8. Persistent damage and debilitating conditions
         if (
-            content.includes("persistent damage") ||
-            content.includes("persistent bleed") ||
-            content.includes("persistent fire") ||
-            content.includes("persistent acid") ||
-            content.includes("persistent poison") ||
-            content.includes("doomed") ||
-            content.includes("drained") ||
-            content.includes("enfeebled") ||
-            content.includes("clumsy") ||
-            content.includes("stupefied") ||
-            content.includes("slowed") ||
-            content.includes("stunned") ||
-            content.includes("paralyzed") ||
-            content.includes("petrified") ||
-            content.includes("confused")
+            combined.includes("persistent damage") ||
+            combined.includes("persistent bleed") ||
+            combined.includes("persistent fire") ||
+            combined.includes("persistent acid") ||
+            combined.includes("persistent poison") ||
+            combined.includes("doomed") ||
+            combined.includes("drained") ||
+            combined.includes("enfeebled") ||
+            combined.includes("clumsy") ||
+            combined.includes("stupefied") ||
+            combined.includes("slowed") ||
+            combined.includes("stunned") ||
+            combined.includes("paralyzed") ||
+            combined.includes("petrified") ||
+            combined.includes("confused")
         ) {
             console.log("Chat Trimmer | Key Event detected (condition):", {
-                content: content.substring(0, 100),
+                text: combined.substring(0, 100),
                 speaker: msg.speaker?.alias,
             });
             return true;
         }
 
         // Debug: Log when no key event is detected for critical-looking messages
-        if (content.includes("critical") || content.includes("success")) {
+        if (combined.includes("critical") || combined.includes("success")) {
             console.log("Chat Trimmer | NOT a key event (debug):", {
-                content: content.substring(0, 200),
+                text: combined.substring(0, 200),
                 outcome: msg.flags?.pf2e?.context?.outcome,
                 speaker: msg.speaker?.alias,
             });
@@ -803,9 +818,6 @@ export class ChatTrimmer {
      * Format individual message for display
      */
     formatIndividualDisplay(msg) {
-        // Extract actor/author name
-        const actor = MessageParser.extractActorName(msg);
-
         // Extract target information from various sources
         const targetName = this.extractTargetName(msg);
         const targetSuffix = targetName ? ` → ${targetName}` : "";
@@ -839,7 +851,7 @@ export class ChatTrimmer {
                 rollTotal = ` (${msg.rolls[0].total})`;
             }
 
-            return `⚔️ ${actor}: ${actionName}${targetSuffix}${outcomeText}${rollTotal}`;
+            return `⚔️ ${actionName}${targetSuffix}${outcomeText}${rollTotal}`;
         }
 
         // Check for PF2e damage rolls
@@ -871,19 +883,19 @@ export class ChatTrimmer {
 
             const label = labelParts.join(" ");
 
-            return `⚔️ ${actor}: ${label}${targetSuffix}${rollTotal}`;
+            return `⚔️ ${label}${targetSuffix}${rollTotal}`;
         }
 
         // Check for PF2e spell casts
         if (msg.flags?.pf2e?.origin?.type === "spell") {
             const spellName = msg.flags.pf2e.origin.item?.name || "Spell";
-            return `✨ ${actor}: ${spellName}${targetSuffix}`;
+            return `✨ ${spellName}${targetSuffix}`;
         }
 
         // Check if it's a roll message
         if (MessageParser.isRoll(msg)) {
             const rollSummary = MessageParser.createRollSummary(msg);
-            return `🎲 ${actor}: ${rollSummary}${targetSuffix}`;
+            return `🎲 ${rollSummary}${targetSuffix}`;
         }
 
         // Check if it's in-character dialogue
@@ -893,7 +905,7 @@ export class ChatTrimmer {
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `💬 ${actor}${targetSuffix}: ${preview}`;
+            return `💬 ${preview}`;
         }
 
         // Check if it's an emote
@@ -901,7 +913,7 @@ export class ChatTrimmer {
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `✨ ${actor}${targetSuffix} ${preview}`;
+            return `✨ ${preview}`;
         }
 
         // Check if it's OOC
@@ -909,7 +921,7 @@ export class ChatTrimmer {
             const content = MessageParser.stripHTML(msg.content);
             const preview =
                 content.substring(0, 80) + (content.length > 80 ? "..." : "");
-            return `💭 ${actor}: ${preview}`;
+            return `💭 ${preview}`;
         }
 
         // Default: system message or other
@@ -1030,14 +1042,49 @@ export class ChatTrimmer {
     determineMessageCategories(msg) {
         const categories = [];
 
-        // Check if it's combat-related (includes combat rolls)
-        if (this.isCombatMessage(msg)) {
-            categories.push("combat");
-        }
-
-        // Check if it's a roll (can be both combat and roll)
+        // Check if it's a roll first
         if (MessageParser.isRoll(msg)) {
             categories.push("rolls");
+        }
+
+        // Check if there's an active combat encounter
+        const hasActiveCombat =
+            game.combat?.active || game.combats?.some((c) => c.active);
+
+        // If combat is active, add combat category to combat-related messages
+        if (hasActiveCombat) {
+            // Check for PF2e combat flags
+            const contextType = msg.flags?.pf2e?.context?.type;
+            if (
+                contextType === "attack-roll" ||
+                contextType === "spell-attack-roll" ||
+                contextType === "saving-throw" ||
+                contextType === "damage-roll"
+            ) {
+                if (!categories.includes("combat")) {
+                    categories.push("combat");
+                }
+            }
+            // Check for initiative or other combat indicators
+            else if (msg.flags?.core?.initiativeRoll) {
+                if (!categories.includes("combat")) {
+                    categories.push("combat");
+                }
+            }
+            // Check content for combat keywords
+            else if (MessageParser.isRoll(msg)) {
+                const contentLower = msg.content.toLowerCase();
+                if (
+                    contentLower.includes("attack") ||
+                    contentLower.includes("damage") ||
+                    contentLower.includes("saving throw") ||
+                    contentLower.includes("combat")
+                ) {
+                    if (!categories.includes("combat")) {
+                        categories.push("combat");
+                    }
+                }
+            }
         }
 
         // Check for whispers
@@ -1108,24 +1155,67 @@ export class ChatTrimmer {
             totalDialogues: 0,
             totalSkillChecks: 0,
             totalRolls: 0,
-            criticalHits: 0,
+            criticalSuccesses: 0,
             criticalFails: 0,
             itemsTransferred: 0,
             xpAwarded: 0,
         };
 
-        // Count from combat summaries
-        for (const combat of detected.combats) {
-            if (combat.rounds) {
-                combat.rounds.forEach((round) => {
-                    stats.totalRolls += round.actions.length;
-                    round.actions.forEach((action) => {
-                        if (action.critical) stats.criticalHits++;
-                        if (action.fumble) stats.criticalFails++;
-                    });
+        // Count from all entries to capture critical successes/failures on all roll types
+        for (const entry of entries) {
+            // Count rolls from entries
+            if (entry.originalMessage && MessageParser.isRoll(entry.originalMessage)) {
+                stats.totalRolls++;
+
+                // Check for critical success/failure in PF2e flags first (most reliable)
+                const outcome = entry.originalMessage.flags?.pf2e?.context?.outcome;
+
+                console.log("Chat Trimmer | Stats: Checking roll message:", {
+                    speaker: entry.speaker,
+                    outcome: outcome,
+                    hasFlags: !!entry.originalMessage.flags?.pf2e,
+                    content: entry.originalMessage.content.substring(0, 50),
+                    flavor: entry.originalMessage.flavor ? entry.originalMessage.flavor.substring(0, 50) : "no flavor"
                 });
+
+                if (outcome === "criticalSuccess") {
+                    stats.criticalSuccesses++;
+                    console.log("Chat Trimmer | Stats: Critical success found (PF2e flag)!");
+                } else if (outcome === "criticalFailure") {
+                    stats.criticalFails++;
+                    console.log("Chat Trimmer | Stats: Critical failure found (PF2e flag)!");
+                } else {
+                    // Fallback: Check content AND flavor for critical indicators
+                    // (PF2e stores critical text in flavor field, not content)
+                    const content = entry.originalMessage.content.toLowerCase();
+                    const flavor = entry.originalMessage.flavor?.toLowerCase() || "";
+                    const combined = content + " " + flavor;
+
+                    if (
+                        combined.includes("critical success") ||
+                        combined.includes("critical hit") ||
+                        combined.includes('class="criticalsuccess"')
+                    ) {
+                        stats.criticalSuccesses++;
+                        console.log("Chat Trimmer | Stats: Critical success found (content/flavor check)!", {
+                            hasCriticalSuccess: combined.includes("critical success"),
+                            hasCriticalHit: combined.includes("critical hit"),
+                            hasClass: combined.includes('class="criticalsuccess"')
+                        });
+                    } else if (
+                        combined.includes("critical failure") ||
+                        combined.includes("critical miss") ||
+                        combined.includes("fumble") ||
+                        combined.includes('class="criticalfailure"')
+                    ) {
+                        stats.criticalFails++;
+                        console.log("Chat Trimmer | Stats: Critical failure found (content/flavor check)!");
+                    }
+                }
             }
         }
+
+        console.log("Chat Trimmer | Final statistics:", stats);
 
         return stats;
     }

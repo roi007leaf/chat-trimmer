@@ -331,13 +331,13 @@ export class CombatDetector {
         const keyMoments = [];
         let totalDamageDealt = 0;
         let totalDamageTaken = 0;
-        let criticalHits = 0;
+        let criticalSuccesses = 0;
 
         for (const round of combat.rounds) {
             for (const action of round.actions) {
                 // Track critical hits
                 if (action.critical) {
-                    criticalHits++;
+                    criticalSuccesses++;
                     if (action.damage) {
                         keyMoments.push(
                             `${action.actor} scored a critical hit on ${action.target || "target"} (${action.damage} damage)`,
@@ -393,7 +393,7 @@ export class CombatDetector {
             stats: {
                 totalDamageDealt,
                 totalDamageTaken,
-                criticalHits,
+                criticalSuccesses,
             },
             originalMessageIds: messages.map((m) => m.id),
             originalMessageCount: messages.length,

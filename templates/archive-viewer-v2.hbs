@@ -49,8 +49,8 @@
                     <ul>
                         <li><strong>Combats:</strong> {{sessionSummary.statistics.combats}}</li>
                         <li><strong>Rolls:</strong> {{sessionSummary.statistics.rolls}}</li>
-                        <li><strong>Critical Hits:</strong> {{sessionSummary.statistics.criticalHits}}</li>
-                        <li><strong>Critical Fails:</strong> {{sessionSummary.statistics.criticalFails}}</li>
+                        <li><strong>Critical Successes:</strong> {{sessionSummary.statistics.criticalSuccesses}}</li>
+                        <li><strong>Critical Failures:</strong> {{sessionSummary.statistics.criticalFails}}</li>
                     </ul>
                 </div>
             </div>
@@ -128,7 +128,7 @@
                 <span class="entry-icon">{{this.icon}}</span>
                 <div class="entry-header-content">
                     {{#if this.speaker}}<div class="entry-speaker">{{this.speaker}}</div>{{/if}}
-                    <span class="entry-summary">{{#if this.displaySummary}}{{this.displaySummary}}{{else}}{{this.displayText}}{{/if}}</span>
+                    <span class="entry-summary">{{#if this.displaySummary}}{{removeDuplicateSpeaker this.displaySummary this.speaker}}{{else}}{{removeDuplicateSpeaker this.displayText this.speaker}}{{/if}}</span>
                 </div>
                 <span class="entry-timestamp">{{formatTime this.timestamp}}</span>
                 <button class="view-original-btn" data-action="viewOriginal" data-tooltip="View Original">
