@@ -1,4 +1,4 @@
-# Chat Trimmer & Summarizer
+# Chat Trimmer
 
 A Foundry VTT module that automatically compresses chat history using intelligent pattern recognition. Reduces memory usage by 80-90% while preserving important information in searchable, organized archives. **No LLM or external services required!**
 
@@ -15,23 +15,34 @@ A Foundry VTT module that automatically compresses chat history using intelligen
 
 ## 🚀 Features
 
-### Phase 1 (MVP - Current Implementation)
+### Core Features
 
 - ✅ **Combat Encounter Detection** - Automatically identifies and compresses combat encounters
-- ✅ **Message Classification** - Categorizes messages by type and importance
-- ✅ **Archive Storage** - Saves compressed data as searchable journal entries
-- ✅ **Archive Viewer** - Browse and search archived messages
+- ✅ **Message Classification** - Categorizes messages by type (combat, dialogue, rolls, items, etc.)
+- ✅ **Session Management** - Track multiple sessions with automatic archiving
+- ✅ **Archive Storage** - External JSON storage or Journal entries for optimal performance
+- ✅ **Advanced Archive Viewer** - Browse, filter, and search archived messages with pagination
 - ✅ **Manual Trim** - Trim chat with a single button click
 - ✅ **Auto-Trim** - Automatic trimming based on message count or time thresholds
-- ✅ **Statistics** - View compression ratios and session statistics
+- ✅ **Session Statistics** - View compression ratios and detailed session statistics
+- ✅ **Key Events Summary** - Highlights critical moments from your session
 
 ### Compression Features
 
 - **Combat Encounters**: Detects combat start/end, tracks rounds, actions, damage, and outcomes
-- **Critical Message Preservation**: Always keeps death saves, critical hits, level ups, etc.
+- **Key Events Detection**: Automatically identifies and highlights:
+  - Critical successes and failures
+  - Death, dying, unconscious, and wounded conditions
+  - Hero Point usage
+  - High-level spells (4th level and above)
+  - XP gains and level ups
+  - Major item transfers and loot
+  - Persistent damage and debilitating conditions
+- **Skill Check Recognition**: Properly labels skill checks with action names (e.g., "Grapple (Athletics)")
 - **Item Transfer Tracking**: Preserves item transfer messages
 - **Searchable Archives**: Full-text search across all archived content
 - **No Data Loss**: Original messages can be viewed from summaries
+- **Roll Recreation**: Preserve roll buttons and formulas for later re-rolling
 
 ## 📦 Installation
 
@@ -44,65 +55,94 @@ A Foundry VTT module that automatically compresses chat history using intelligen
 
 ### Quick Start
 
-1. **Access Controls**: Look for the trim buttons in your chat interface
-2. **Trim Chat**: Click "Trim Chat" button to manually compress current messages
-3. **View Archives**: Click "View Archives" to browse compressed chat history
-4. **Configure**: Adjust settings in Module Settings under "Chat Trimmer & Summarizer"
+1. **Find the Archive Button**: Look for the archive icon (📦) in your chat controls
+2. **Left-click** to open the Archive Viewer and browse past sessions
+3. **Right-click** to open the menu with options:
+   - **Trim Chat**: Manually compress all current messages
+   - **New Session**: End current session and start a new one
+4. **Configure**: Adjust settings in Module Settings under "Chat Trimmer"
+5. **Auto-Trim**: Enable in settings to automatically trim based on message count or time
 
 ### Archive Viewer
 
-- **Filter by Type**: Combat, Dialogue, Skill Checks, Items
-- **Search**: Full-text search across all archives
-- **Archive Selection**: View current archive or all archives
-- **Expand Entries**: Click any entry to see detailed breakdown
-- **View Original**: See the original messages that were compressed
+- **Session Summary**: Collapsible section showing key events, participants, duration, and statistics
+- **Filter by Category**: Combat, Rolls, Speech, Emotes, Whispers, Healing, Items, Important
+- **Search**: Full-text search across all archives (press Enter to search)
+- **Session Selection**: View specific sessions or all archives
+- **Pagination**: Navigate through large archives with 100 entries per page
+- **Expand Entries**: Click any entry to see detailed breakdown with sub-entries
+- **View Original**: See the original chat messages that were compressed
+- **Roll Buttons**: Re-roll damage and other rolls directly from archived messages
 
 ### Settings
 
-#### Auto-Trim Triggers
+#### Auto-Trim Configuration
 
 - **Enable Automatic Trimming**: Toggle auto-trim on/off
-- **Message Threshold**: Trim when chat reaches X messages (default: 500)
-- **Messages to Keep**: Number of recent messages to preserve in chat (default: 100)
-- **Time Threshold**: Trim every X hours (default: 2)
+- **Additional Messages Before Trim**: How many messages above "Messages to Keep" before auto-trim triggers
+- **Messages to Keep Visible**: Number of recent messages to preserve in chat for performance
+- **Time Threshold**: Trigger auto-trim after X hours
 
 #### Compression Settings
 
-- **Enable Combat Compression**: Compress combat encounters
-- **Enable Dialogue Compression**: Compress dialogue threads (future)
-- **Enable Skill Check Clustering**: Group related skill checks (future)
+- **Enable Combat Compression**: Compress combat encounters into summaries
+- **Enable Dialogue Compression**: Compress dialogue threads (future feature)
+- **Enable Skill Check Clustering**: Group related skill checks (future feature)
 - **Preserve Item Transfers**: Always keep item transfer messages
+
+#### Display Settings
+
+- **Use 24-Hour Time Format**: Display timestamps in 24-hour format (e.g., 14:30 instead of 2:30 PM)
+- **Storage Location**: Choose between Journal Entry (embedded) or External JSON File (recommended for better performance)
 
 ## 🔍 Compression Examples
 
 ### Before (47 messages)
 
-```
+```text
 [15:32:15] GM: Roll for initiative!
 [15:32:18] Bob: Initiative
 [15:32:18] 🎲 Bob rolled 1d20+2: 15
-... [44 more messages] ...
+[15:32:20] Alice: Initiative
+[15:32:20] 🎲 Alice rolled 1d20+4: 18
+[15:32:22] Goblin 1: Initiative
+[15:32:22] 🎲 Goblin 1 rolled 1d20+1: 8
+... [41 more messages] ...
 ```
 
-### After (1 summary)
+### After (Combat Summary + Key Events)
 
-```
+```text
+SESSION SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Duration: 2h 15m
+Participants: Bob, Alice, GM
+Combats: 2 | Rolls: 47 | Critical Hits: 3
+
+KEY EVENTS:
+💥 15:35 - Alice: Critical Success! Grapple (Athletics): 45
+💀 15:38 - Goblin 2 was reduced to 0 HP
+⭐ 15:52 - Bob: Leveled Up
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ⚔️ Combat: Goblin Ambush (3 rounds, Victory)
-  15:32 - 15:45 (13 minutes)
-
   Round 1:
-    • Goblin 1 hit Bob (5 dmg)
-    • Bob missed Goblin 1
-    • Alice hit Goblin 2 (8 dmg)
+    • Goblin 1 → Bob: Attack (12) [Hit] → Damage (5)
+    • Bob → Goblin 1: Attack (8) [Miss]
+    • Alice → Goblin 2: Attack (15) [Hit] → Damage (8)
 
   Round 2:
-    • Alice CRIT Goblin 2 (18 dmg) - KILLED
-    • Bob hit Goblin 1 (7 dmg)
+    • Alice → Goblin 2: Attack (20) [CRITICAL HIT] → Critical Damage (18)
+    • Goblin 2: Dies
+    • Bob → Goblin 1: Attack (14) [Hit] → Damage (7)
 
-  [View Original Messages]
+  [Expand] [View Original Messages]
 ```
 
-**Compression Ratio: 97% reduction**
+### Compression Ratio
+
+97% reduction (47 messages → 1 combat summary)
 
 ## 🛠️ Technical Details
 
@@ -115,97 +155,168 @@ The module uses pattern recognition algorithms to detect:
    - Attack rolls, damage, hits/misses
    - Critical hits and fumbles
    - Character knockouts and deaths
-   - Round tracking
+   - Round tracking and combat outcome detection
 
-2. **Message Classification**
-   - Critical (always preserve)
-   - Important (compress with details)
-   - Moderate (compress heavily)
-   - Trivial (count or discard)
+2. **Key Events (Session Highlights)**
+   - Critical successes/failures via PF2e flags and content parsing
+   - Death saves and recovery checks
+   - Dying, death, unconscious, and wounded conditions
+   - Hero Point usage
+   - High-level spells (4th level and above)
+   - XP gains and level ups
+   - Major item transfers (100+ gold, legendary items, treasure)
+   - Persistent damage and debilitating conditions
 
-3. **Smart Compression**
-   - Groups related messages
-   - Extracts key information
-   - Generates searchable summaries
-   - Preserves context
+3. **Message Classification**
+   - Multi-category support (entries can belong to multiple categories)
+   - Combat, Rolls, Speech, Emotes, Whispers, Healing, Items, Important
+   - PF2e-specific roll type detection (attack-roll, damage-roll, skill-check, saving-throw)
+   - Skill check action extraction (e.g., "Grapple (Athletics Check)")
+
+4. **Smart Compression**
+   - Groups related messages by combat encounter
+   - Extracts key information (actors, targets, outcomes, damage)
+   - Generates human-readable summaries
+   - Preserves roll data for recreation
+   - Maintains chronological order
 
 ### Data Storage
 
-- Archives stored as Journal Entries in "Chat Archives" folder
-- Each archive contains compressed entries with:
-  - Original message references
-  - Extracted data (participants, locations, items)
-  - Search keywords
-  - Statistics
+- **External JSON Storage** (Recommended): Stores archives as JSON files in `Data/chat-trimmer-archives/`
+  - Better performance for large archives
+  - Easier to backup and transfer
+  - Indexed in world settings for fast access
+
+- **Journal Entry Storage**: Stores archives as Journal Entries in "Chat Archives" folder
+  - Native Foundry integration
+  - No external files needed
+  - May impact performance with very large archives
+
+Each archive contains:
+
+- Compressed entries with original message references
+- Extracted data (participants, locations, items, damage)
+- Search keywords for full-text search
+- Session statistics and metadata
+- Key events list for session summary
+- Roll data for button recreation
 
 ## 🎯 Performance
 
 - **Memory Reduction**: 80-90% reduction in chat data
-- **Processing Speed**: 500 messages in <5 seconds
-- **Search Speed**: Results in <1 second
-- **UI Responsiveness**: Background processing keeps UI smooth
+- **Processing Speed**: 500 messages processed in <5 seconds
+- **Search Speed**: Full-text search results in <1 second
+- **Archive Loading**: Pagination ensures fast loading even with thousands of entries
+- **Storage Options**: External JSON recommended for optimal performance with large archives
+- **UI Responsiveness**: Non-blocking operations keep Foundry responsive during trim
 
 ## 🔮 Future Features (Roadmap)
 
-### Phase 2 - Enhanced Compression
+### Enhanced Compression
 
-- Dialogue thread detection & compression
+- Dialogue thread detection and compression
 - Skill check clustering
-- Enhanced item transfer tracking
-- Advanced keyword extraction
+- Location tracking and scene changes
+- Advanced keyword extraction with NPC/location recognition
 
-### Phase 3 - User Experience
+### User Experience Improvements
 
-- Improved progress indicators
-- Enhanced expand/collapse UI
-- Better original message viewing
-- Archive statistics dashboard
+- Progress indicators during trim operations
+- Archive comparison tools
+- Session timeline visualization
+- Statistics dashboard with charts
 
-### Phase 4 - Advanced Features
+### Advanced Features
 
-- Advanced search and filters
-- Export to PDF/JSON
-- Undo operation
-- Custom compression rules
-- Archive retention policies
+- Export to PDF/JSON/Markdown
+- Undo/restore operations
+- Custom compression rules and filters
+- Archive retention policies (auto-delete old archives)
+- Integration with other modules (Simple Calendar, etc.)
 
 ## 🐛 Troubleshooting
 
 ### Chat not trimming
 
-- Ensure you're a GM (only GMs can trim)
-- Check that there are messages to trim
-- Verify settings are configured correctly
+- Ensure you're a GM (only GMs can trim chat)
+- Check that there are messages to trim beyond the "Messages to Keep" threshold
+- Verify "Enable Automatic Trimming" is turned on (if using auto-trim)
+- Check browser console (F12) for error messages
 
 ### Archives not showing
 
-- Check the "Chat Archives" journal folder
-- Verify module is enabled
-- Try refreshing Foundry VTT
+- For Journal storage: Check the "Chat Archives" journal folder
+- For External JSON storage: Verify files exist in `Data/chat-trimmer-archives/`
+- Try refreshing Foundry VTT (F5)
+- Verify module is enabled in Module Management
+
+### Archive Viewer issues
+
+- If entries don't load: Check Storage Type setting and ensure files/journals exist
+- If search doesn't work: Press Enter after typing your search query
+- If pagination is broken: Check browser console for errors
 
 ### Performance issues
 
-- Reduce message threshold in settings
-- Enable background processing
-- Check console for errors
+- Switch to External JSON storage (recommended for large archives)
+- Reduce "Messages to Keep Visible" setting
+- Decrease auto-trim thresholds
+- Check console (F12) for errors or warnings
 
-## 💻 Console API
+### Key Events not showing
 
-Access the module programmatically:
+- Ensure you're on version 1.0.6 or later
+- Trim new messages after updating to capture key events
+- Check that messages have PF2e flags or critical content
+- Expand session summary to view key events list
+
+## 💻 Developer API
+
+Access module functionality programmatically via console:
 
 ```javascript
-// Manual trim
-await ChatTrimmer.manualTrim();
+// Get module instance
+const chatTrimmer = game.modules.get("chat-trimmer")?.instance;
 
-// View archives
-ChatTrimmer.viewArchives();
+// Manual trim (ignores "Messages to Keep" setting)
+await chatTrimmer.trimmer.trim(null, { ignoreKeep: true });
 
-// Export archive
-await ChatTrimmer.exportArchive(sessionNumber);
+// View archive viewer
+const viewer = new game.modules.get("chat-trimmer").ArchiveViewerV2(
+  chatTrimmer.archiveManager,
+);
+viewer.render(true);
 
-// Access managers
-const trimmer = ChatTrimmer.trimmer();
-const archiveManager = ChatTrimmer.archiveManager();
+// Access archive manager
+const archiveManager = chatTrimmer.archiveManager;
+
+// Get all archives
+const archives = await archiveManager.getAllArchives();
+
+// Get specific archive entries
+const entries = await archiveManager.getArchiveEntries(archive);
+
+// Generate session summary
+const summary = await archiveManager.generateSessionSummary(archive, entries);
+
+// Delete an archive
+await archive.delete();
+```
+
+### Hooks
+
+Listen to module events:
+
+```javascript
+// Before trim starts
+Hooks.on("chatTrimmer.beforeTrim", (messages, options) => {
+  console.log(`About to trim ${messages.length} messages`);
+});
+
+// After trim completes
+Hooks.on("chatTrimmer.afterTrim", (archive, result) => {
+  console.log(`Trimmed to ${result.compressionRatio}% compression`);
+});
 ```
 
 ## 🤝 Contributing
@@ -234,6 +345,7 @@ Built for the Foundry VTT community to solve the chat data overload problem.
 
 ---
 
-**Version**: 1.0.0  
-**Compatibility**: Foundry VTT v11, v12, v13  
-**Systems**: All game systems (tested with D&D 5e, PF2e)
+**Version**: 1.0.0
+**Compatibility**: Foundry VTT v13+
+**Systems**: All game systems (optimized for PF2e, works with D&D 5e and others)
+**Repository**: [GitHub](https://github.com/roi007leaf/chat-trimmer)

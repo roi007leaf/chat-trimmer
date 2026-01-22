@@ -336,6 +336,151 @@ export class ChatTrimmer {
     }
 
     /**
+     * Check if message is a key event that should appear in session summary
+     * @param {Object} msg - The message to check
+     * @param {string} [contentLower] - Pre-computed lowercase content for performance
+     * @returns {boolean} True if this is a key event
+     */
+    isKeyEvent(msg, contentLower = null) {
+        const content = contentLower ?? msg.content.toLowerCase();
+
+        // 1. Critical successes and failures on rolls
+        const outcome = msg.flags?.pf2e?.context?.outcome;
+        if (outcome === "criticalSuccess" || outcome === "criticalFailure") {
+            console.log("Chat Trimmer | Key Event detected (PF2e flag):", {
+                outcome,
+                speaker: msg.speaker?.alias,
+            });
+            return true;
+        }
+
+        // Check content for critical indicators
+        if (
+            content.includes("critical success") ||
+            content.includes("critical hit") ||
+            content.includes("critical failure") ||
+            content.includes("critical miss") ||
+            content.includes("fumble")
+        ) {
+            console.log("Chat Trimmer | Key Event detected (critical):", {
+                content: content.substring(0, 100),
+                speaker: msg.speaker?.alias,
+            });
+            return true;
+        }
+
+        // 2. Dying, death, unconscious, and wounded conditions
+        if (
+            content.includes("dying") ||
+            content.includes("death") ||
+            content.includes("dies") ||
+            content.includes("dead") ||
+            content.includes("unconscious") ||
+            content.includes("knocked out") ||
+            content.includes("wounded")
+        ) {
+            return true;
+        }
+
+        // 3. Death saves (Recovery Checks in PF2e)
+        if (
+            content.includes("death save") ||
+            content.includes("recovery check") ||
+            content.includes("stabilize")
+        ) {
+            return true;
+        }
+
+        // 4. Hero Point usage
+        if (
+            content.includes("hero point") ||
+            content.includes("hero points") ||
+            msg.flags?.pf2e?.context?.heroPoints
+        ) {
+            return true;
+        }
+
+        // 5. High-level spells (4th level and above)
+        if (msg.flags?.pf2e?.origin?.type === "spell") {
+            const spellLevel = msg.flags.pf2e.origin.item?.level;
+            if (spellLevel && spellLevel >= 4) {
+                return true;
+            }
+        }
+
+        // Also check content for high-level spell indicators
+        const spellLevelMatch = content.match(/\b(\d+)(?:st|nd|rd|th)[-\s]?level spell/i);
+        if (spellLevelMatch && parseInt(spellLevelMatch[1]) >= 4) {
+            return true;
+        }
+
+        // 6. XP gains and level ups
+        if (
+            content.includes("xp") ||
+            content.includes("experience") ||
+            content.includes("level up") ||
+            content.includes("gained a level") ||
+            content.includes("leveled up")
+        ) {
+            return true;
+        }
+
+        // 7. Major item transfers and loot
+        // Check for significant gold amounts (100+) or notable item keywords
+        const goldMatch = content.match(/(\d+)\s*(?:gold|gp|pp|platinum)/i);
+        if (goldMatch && parseInt(goldMatch[1]) >= 100) {
+            return true;
+        }
+
+        if (
+            content.includes("treasure") ||
+            content.includes("loot") ||
+            content.includes("artifact") ||
+            content.includes("relic") ||
+            content.includes("legendary") ||
+            content.includes("unique item")
+        ) {
+            return true;
+        }
+
+        // 8. Persistent damage and debilitating conditions
+        if (
+            content.includes("persistent damage") ||
+            content.includes("persistent bleed") ||
+            content.includes("persistent fire") ||
+            content.includes("persistent acid") ||
+            content.includes("persistent poison") ||
+            content.includes("doomed") ||
+            content.includes("drained") ||
+            content.includes("enfeebled") ||
+            content.includes("clumsy") ||
+            content.includes("stupefied") ||
+            content.includes("slowed") ||
+            content.includes("stunned") ||
+            content.includes("paralyzed") ||
+            content.includes("petrified") ||
+            content.includes("confused")
+        ) {
+            console.log("Chat Trimmer | Key Event detected (condition):", {
+                content: content.substring(0, 100),
+                speaker: msg.speaker?.alias,
+            });
+            return true;
+        }
+
+        // Debug: Log when no key event is detected for critical-looking messages
+        if (content.includes("critical") || content.includes("success")) {
+            console.log("Chat Trimmer | NOT a key event (debug):", {
+                content: content.substring(0, 200),
+                outcome: msg.flags?.pf2e?.context?.outcome,
+                speaker: msg.speaker?.alias,
+            });
+        }
+
+        return false;
+    }
+
+    /**
      * Create archive entries from detected patterns
      */
     createArchiveEntries(detected, classified) {
@@ -357,6 +502,7 @@ export class ChatTrimmer {
                 content: this.formatCombatDisplay(combat),
                 searchKeywords: KeywordExtractor.extractFromData(combat),
                 originalMessageIds: combat.originalMessageIds,
+                isKeyEvent: true, // Combat encounters are always key events
             });
 
             // Mark messages as processed
@@ -366,6 +512,7 @@ export class ChatTrimmer {
         // Add critical messages individually (not compressed)
         for (const msg of classified.critical) {
             if (!processedMessageIds.has(msg.id)) {
+                const contentLower = msg.content.toLowerCase();
                 const category = this.determineMessageCategory(msg);
                 const displayText = this.formatIndividualDisplay(msg);
                 const icon =
@@ -387,6 +534,7 @@ export class ChatTrimmer {
                     rollData: rollData,
                     searchKeywords: MessageParser.extractKeywords(msg.content),
                     originalMessageIds: [msg.id],
+                    isKeyEvent: this.isKeyEvent(msg, contentLower),
                 });
 
                 processedMessageIds.add(msg.id);
@@ -411,6 +559,7 @@ export class ChatTrimmer {
 
         // Add all unprocessed messages individually to preserve chronological order
         for (const msg of unprocessedMessages) {
+            const contentLower = msg.content.toLowerCase();
             const categories = this.determineMessageCategories(msg);
             const category = categories[0]; // Primary category for backward compatibility
             const displayText = this.formatIndividualDisplay(msg);
@@ -433,6 +582,7 @@ export class ChatTrimmer {
                 rollData: rollData,
                 searchKeywords: MessageParser.extractKeywords(msg.content),
                 originalMessageIds: [msg.id],
+                isKeyEvent: this.isKeyEvent(msg, contentLower),
             });
 
             processedMessageIds.add(msg.id);
@@ -450,6 +600,7 @@ export class ChatTrimmer {
      * Create an individual entry from a message
      */
     createIndividualEntry(msg) {
+        const contentLower = msg.content.toLowerCase();
         const categories = this.determineMessageCategories(msg);
         const category = categories[0]; // Primary category for backward compatibility
         const displayText = this.formatIndividualDisplay(msg);
@@ -472,6 +623,7 @@ export class ChatTrimmer {
             rollData: rollData,
             searchKeywords: MessageParser.extractKeywords(msg.content),
             originalMessageIds: [msg.id],
+            isKeyEvent: this.isKeyEvent(msg, contentLower),
         };
     }
 

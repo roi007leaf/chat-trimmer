@@ -538,6 +538,54 @@ export class ArchiveManager {
             const lowerContent = content.toLowerCase();
             const combinedText = `${lowerText} ${lowerContent}`;
 
+            // PRIORITY: Check if entry is explicitly marked as a key event
+            if (entry.isKeyEvent === true) {
+                console.log("Archive Manager | Key event found:", {
+                    speaker: entry.speaker,
+                    displayText: displayText.substring(0, 100)
+                });
+
+                // Determine appropriate icon based on content
+                let icon = "⭐";
+                let importance = "high";
+
+                if (combinedText.includes("critical success") || combinedText.includes("critical hit")) {
+                    icon = "💥";
+                    importance = "high";
+                } else if (combinedText.includes("critical fail") || combinedText.includes("fumble")) {
+                    icon = "💢";
+                    importance = "high";
+                } else if (combinedText.includes("dying") || combinedText.includes("death") || combinedText.includes("unconscious")) {
+                    icon = "💀";
+                    importance = "high";
+                } else if (combinedText.includes("hero point")) {
+                    icon = "🌟";
+                    importance = "high";
+                } else if (combinedText.includes("spell")) {
+                    icon = "✨";
+                    importance = "medium";
+                } else if (combinedText.includes("level") || combinedText.includes("xp")) {
+                    icon = "⭐";
+                    importance = "high";
+                } else if (combinedText.includes("persistent") || combinedText.includes("condition")) {
+                    icon = "🩹";
+                    importance = "medium";
+                } else if (combinedText.includes("treasure") || combinedText.includes("loot") || combinedText.includes("gold")) {
+                    icon = "📦";
+                    importance = "medium";
+                }
+
+                keyEvents.push({
+                    timestamp: entry.timestamp,
+                    icon: icon,
+                    text: displayText || `${entry.speaker}: Key Event`,
+                    importance: importance
+                });
+
+                return; // Skip other checks since this is already a key event
+            }
+
+            // Fallback checks for entries without isKeyEvent flag (legacy support)
             // Check for death from damage (HP reaching 0)
             // Look for damage messages and check if target HP reached 0
             if (entry.originalMessage && (lowerText.includes("damage") || lowerContent.includes("damage"))) {
@@ -713,6 +761,9 @@ export class ArchiveManager {
         });
 
         console.log(`Archive Manager | Found ${keyEvents.length} key events`);
+        if (keyEvents.length > 0) {
+            console.log("Archive Manager | Sample key events:", keyEvents.slice(0, 3));
+        }
 
         // Sort by timestamp (chronological order)
         keyEvents.sort((a, b) => a.timestamp - b.timestamp);
