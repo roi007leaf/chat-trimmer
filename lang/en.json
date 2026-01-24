@@ -1,6 +1,8 @@
 {
   "CHATTRIMMER.Settings.AutoTrimEnable": "Enable Automatic Trimming",
   "CHATTRIMMER.Settings.AutoTrimEnableHint": "Automatically trim chat when thresholds are reached",
+  "CHATTRIMMER.Settings.EnableArchiving": "Enable Archiving",
+  "CHATTRIMMER.Settings.EnableArchivingHint": "Archive messages before trimming. If disabled, messages will only be deleted without creating archives.",
   "CHATTRIMMER.Settings.MessageThreshold": "Additional Messages Before Trim",
   "CHATTRIMMER.Settings.MessageThresholdHint": "How many messages above 'Messages to Keep' before auto-trim triggers (e.g., Keep=20, Additional=30 → trim at 50 messages)",
   "CHATTRIMMER.Settings.MessagesToKeep": "Messages to Keep Visible",
@@ -40,6 +42,7 @@
   "CHATTRIMMER.Notifications.TrimmingStart": "Trimming chat, please wait...",
   "CHATTRIMMER.Notifications.OriginalNotAvailable": "Original message is not available.",
   "CHATTRIMMER.Notifications.TrimmingComplete": "Archived {original} message(s)",
+  "CHATTRIMMER.Notifications.TrimmingCompleteNoArchive": "Deleted {original} message(s) without archiving",
   "CHATTRIMMER.Notifications.NoMessages": "No messages to trim",
   "CHATTRIMMER.Notifications.NewSessionStarted": "New session started: {sessionName}",
   "CHATTRIMMER.Notifications.AllArchivesDeleted": "All archives deleted successfully",

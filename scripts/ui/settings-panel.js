@@ -13,6 +13,15 @@ export class SettingsPanel {
             default: false,
         });
 
+        game.settings.register("chat-trimmer", "enableArchiving", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.EnableArchiving"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.EnableArchivingHint"),
+            scope: "world",
+            config: true,
+            type: Boolean,
+            default: true,
+        });
+
         game.settings.register("chat-trimmer", "messageThreshold", {
             name: game.i18n.localize("CHATTRIMMER.Settings.MessageThreshold"),
             hint: game.i18n.localize("CHATTRIMMER.Settings.MessageThresholdHint"),

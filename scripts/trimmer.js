@@ -71,6 +71,29 @@ export class ChatTrimmer {
                 return null;
             }
 
+            // Check if archiving is enabled
+            const enableArchiving = game.settings.get("chat-trimmer", "enableArchiving");
+            console.log(`Chat Trimmer | Archiving enabled: ${enableArchiving}`);
+
+            // If archiving is disabled, just delete messages and return
+            if (!enableArchiving) {
+                console.log("Chat Trimmer | Archiving disabled - deleting messages without archiving");
+                const messageIds = messages.map((m) => m.id);
+                await ChatMessage.deleteDocuments(messageIds);
+                
+                ui.notifications.info(
+                    game.i18n.format("CHATTRIMMER.Notifications.TrimmingCompleteNoArchive", {
+                        original: messages.length,
+                    }),
+                );
+                
+                return {
+                    archive: null,
+                    stats: null,
+                    compressionRatio: 0,
+                };
+            }
+
             // 1. Classify messages by type
             const classified = this.classifyMessages(messages);
             console.log("Chat Trimmer | Classification results:", {
