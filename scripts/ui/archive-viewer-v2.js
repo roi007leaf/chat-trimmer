@@ -45,6 +45,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
             toggleSummary: ArchiveViewerV2.prototype.onToggleSummary,
             toggleViewMode: ArchiveViewerV2.prototype.onToggleViewMode,
             viewOriginal: ArchiveViewerV2.prototype.onViewOriginal,
+            viewKeyEvent: ArchiveViewerV2.prototype.onViewKeyEvent,
             rollButton: ArchiveViewerV2.prototype.onRollButton,
             deleteCurrentArchive: ArchiveViewerV2.prototype.onDeleteCurrentArchive,
             deleteAllArchives: ArchiveViewerV2.prototype.onDeleteAllArchives,
@@ -501,6 +502,16 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         event.stopPropagation();
         const entryId = target.closest("[data-entry-id]").dataset.entryId;
         await this.showOriginalMessages(entryId);
+    }
+
+    async onViewKeyEvent(event, target) {
+        event.stopPropagation();
+        const entryId = target.closest("[data-entry-id]").dataset.entryId;
+        if (entryId) {
+            await this.showOriginalMessages(entryId);
+        } else {
+            ui.notifications.warn("Cannot view this event - entry not found");
+        }
     }
 
     async onRollButton(event, target) {

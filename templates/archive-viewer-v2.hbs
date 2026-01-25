@@ -59,7 +59,7 @@
                 {{#if sessionSummary.keyEvents.length}}
                 <ul>
                     {{#each sessionSummary.keyEvents}}
-                    <li class="key-event">
+                    <li class="key-event {{this.eventType}}" data-action="viewKeyEvent" data-entry-id="{{this.entryId}}">
                         <span class="event-icon">{{this.icon}}</span>
                         <span class="event-time">{{formatTime this.timestamp}}</span>
                         <span class="event-text">{{this.text}}</span>
@@ -105,6 +105,9 @@
                     </option>
                     <option value="important" {{#if (eq currentFilter "important")}}selected{{/if}}>
                         ⭐ {{localize "CHATTRIMMER.Categories.Important"}}
+                    </option>
+                    <option value="system" {{#if (eq currentFilter "system")}}selected{{/if}}>
+                        📝 {{localize "CHATTRIMMER.Categories.System"}}
                     </option>
                 </select>
             </div>

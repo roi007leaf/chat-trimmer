@@ -462,12 +462,29 @@ export class ArchiveManager {
         const duration = `${durationHours}h ${durationMinutes}m`;
 
         // Extract participants (unique actors)
-        const participants = new Set();
+        const participantsMap = new Map(); // Map speaker name to type (player/npc)
         entries.forEach(entry => {
             if (entry.speaker && entry.speaker !== "Unknown" && entry.speaker !== "Combat") {
-                participants.add(entry.speaker);
+                if (!participantsMap.has(entry.speaker)) {
+                    // Determine if this is a player character
+                    const actor = game.actors.getName(entry.speaker);
+                    const isPlayer = actor?.hasPlayerOwner || false;
+                    participantsMap.set(entry.speaker, { name: entry.speaker, isPlayer });
+                }
             }
         });
+
+        // Sort participants: Players first, then others (alphabetically within each group)
+        const sortedParticipants = Array.from(participantsMap.values())
+            .sort((a, b) => {
+                // Players first
+                if (a.isPlayer && !b.isPlayer) return -1;
+                if (!a.isPlayer && b.isPlayer) return 1;
+                // Within same group, alphabetically
+                return a.name.localeCompare(b.name);
+            });
+
+        const participants = sortedParticipants.map(p => p.name);
 
         // Recalculate statistics from entries (don't trust stored stats)
         const stats = {
@@ -553,16 +570,28 @@ export class ArchiveManager {
                     displayText: displayText.substring(0, 100)
                 });
 
-                // Determine appropriate icon based on content
+                // Determine appropriate icon and enhance text based on content
                 let icon = "⭐";
                 let importance = "high";
+                let eventText = displayText || `${entry.speaker}: Key Event`;
+                let eventType = "default";
 
                 if (combinedText.includes("critical success") || combinedText.includes("critical hit")) {
                     icon = "💥";
                     importance = "high";
+                    eventType = "critical-success";
+                    // Add CRITICAL SUCCESS prefix if not already present
+                    if (!eventText.toLowerCase().includes("critical")) {
+                        eventText = `CRITICAL SUCCESS: ${eventText}`;
+                    }
                 } else if (combinedText.includes("critical fail") || combinedText.includes("fumble")) {
                     icon = "💢";
                     importance = "high";
+                    eventType = "critical-failure";
+                    // Add CRITICAL FAILURE prefix if not already present
+                    if (!eventText.toLowerCase().includes("critical")) {
+                        eventText = `CRITICAL FAILURE: ${eventText}`;
+                    }
                 } else if (combinedText.includes("dying") || combinedText.includes("death") || combinedText.includes("unconscious")) {
                     icon = "💀";
                     importance = "high";
@@ -583,12 +612,18 @@ export class ArchiveManager {
                     importance = "medium";
                 }
 
-                keyEvents.push({
-                    timestamp: entry.timestamp,
-                    icon: icon,
-                    text: displayText || `${entry.speaker}: Key Event`,
-                    importance: importance
-                });
+                // Only add events that have meaningful text (not just emojis or whitespace)
+                const cleanText = (displayText || "").replace(/[\u{1F300}-\u{1F9FF}]/gu, "").trim();
+                if (cleanText.length > 5) { // At least 5 characters of actual text
+                    keyEvents.push({
+                        timestamp: entry.timestamp,
+                        icon: icon,
+                        text: eventText,
+                        importance: importance,
+                        eventType: eventType, // Add event type for CSS styling
+                        entryId: entry.id // Store entry ID so we can jump to it
+                    });
+                }
 
                 return; // Skip other checks since this is already a key event
             }

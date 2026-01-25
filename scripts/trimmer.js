@@ -948,7 +948,15 @@ export class ChatTrimmer {
         }
 
         // Default: system message or other
-        const content = MessageParser.stripHTML(msg.content);
+        let content = MessageParser.stripHTML(msg.content);
+
+        // Check for @Check[] patterns and replace with friendly text
+        const checkMatch = content.match(/@Check\[([^\]|]+)(?:\|[^\]]+)?\]/i);
+        if (checkMatch) {
+            const skillName = checkMatch[1].charAt(0).toUpperCase() + checkMatch[1].slice(1);
+            content = content.replace(checkMatch[0], `${skillName} Check Request`);
+        }
+
         const preview =
             content.substring(0, 80) + (content.length > 80 ? "..." : "");
 
@@ -966,6 +974,7 @@ export class ChatTrimmer {
             content.toLowerCase().includes("level")
         )
             icon = "⭐";
+        else if (checkMatch) icon = "🎲"; // Check requests get dice icon
 
         return `${icon} ${preview}`;
     }
@@ -1115,6 +1124,14 @@ export class ChatTrimmer {
             categories.push("whispers");
         }
 
+        // Check content for specific keywords first (before style checks)
+        const content = MessageParser.stripHTML(msg.content).toLowerCase();
+
+        // Check for trade/sell/buy messages (these often use EMOTE style but should be categorized as items)
+        const isTrade = content.includes(" sells ") || content.includes(" buys ") ||
+                       content.includes("sell item") || content.includes("buy item") ||
+                       (content.includes(" to merchant") || content.includes(" from merchant"));
+
         // Check message style/type
         const styles = CONST.CHAT_MESSAGE_STYLES || CONST.CHAT_MESSAGE_TYPES;
         const style = msg.style ?? msg.type;
@@ -1123,12 +1140,10 @@ export class ChatTrimmer {
             categories.push("speech");
         }
 
-        if (style === styles.EMOTE) {
+        // Only add emotes category if it's not a trade message
+        if (style === styles.EMOTE && !isTrade) {
             categories.push("emotes");
         }
-
-        // Check content for specific keywords
-        const content = MessageParser.stripHTML(msg.content).toLowerCase();
 
         if (content.includes("heal")) {
             categories.push("healing");
@@ -1137,7 +1152,11 @@ export class ChatTrimmer {
         if (
             content.includes("item") ||
             content.includes("gold") ||
-            content.includes("loot")
+            content.includes("loot") ||
+            content.includes(" sells ") ||
+            content.includes(" buys ") ||
+            content.includes("merchant") ||
+            content.includes("trade")
         ) {
             categories.push("items");
         }
@@ -1150,9 +1169,9 @@ export class ChatTrimmer {
             categories.push("important");
         }
 
-        // If no categories matched, default to "all"
+        // If no categories matched, default to "system"
         if (categories.length === 0) {
-            categories.push("all");
+            categories.push("system");
         }
 
         return categories;
