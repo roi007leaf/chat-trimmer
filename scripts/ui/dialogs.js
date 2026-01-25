@@ -152,6 +152,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                 case 'damage':
                                 case 'strike-critical':
                                 case 'critical':
+                                {
                                     console.log('Archive Viewer | Calling strike damage/critical');
                                     const isCritical = action.includes('critical') ||
                                         dataset.outcome === 'criticalSuccess' ||
@@ -205,6 +206,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                         });
                                     }
                                     break;
+                                }
 
                                 case 'spell-attack':
                                 case 'strike-attack':
@@ -236,6 +238,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                 case 'apply-healing':
                                 case 'applyHealing':
                                 case 'target-applyDamage':
+                                {
                                     console.log('Archive Viewer | Applying damage/healing from archived message');
                                     const multiplier = Number(dataset.multiplier || (action === 'apply-healing' || action === 'applyHealing' ? -1 : 1));
                                     try {
@@ -324,6 +327,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                         ui.notifications.error('Could not apply damage from archived message');
                                     }
                                     break;
+                                }
 
                                 case 'shield-block':
                                 case 'shieldBlock':
@@ -391,6 +395,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                     break;
 
                                 case 'expandRoll':
+                                {
                                     console.log('Archive Viewer | Toggling roll tooltip');
                                     const element = event.currentTarget;
                                     const $element = $(element);
@@ -419,6 +424,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                         console.warn('Archive Viewer | No .dice-tooltip found to expand');
                                     }
                                     break;
+                                }
 
                                 case 'set-targets':
                                     console.log('Archive Viewer | "Set Targets" action clicked (ignored in archive)');
@@ -426,6 +432,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                     break;
 
                                 case 'expand-damage-context':
+                                {
                                     console.log('Archive Viewer | Toggling damage context visibility');
                                     const button = event.currentTarget;
                                     const $button = $(button);
@@ -474,6 +481,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
                                         ui.notifications.warn("Could not find damage buttons to expand.");
                                     }
                                     break;
+                                }
 
                                 default:
                                     console.log(`Archive Viewer | Unhandled action: ${action}`);

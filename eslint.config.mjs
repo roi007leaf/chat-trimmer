@@ -38,6 +38,12 @@ export default [
         isDoor: 'readonly',
         // Additional FoundryVTT globals
         MeasuredTemplate: 'readonly',
+        ChatMessage: 'readonly',
+        Folder: 'readonly',
+        JournalEntry: 'readonly',
+        Roll: 'readonly',
+        fromUuid: 'readonly',
+        getDocumentClass: 'readonly',
         fromUuidSync: 'readonly',
         context: 'readonly',
         $: 'readonly', // jQuery

@@ -1051,9 +1051,9 @@ export class ArchiveManager {
     }
 
     /**
-     * Delete an archive
+     * Delete an archive by session number
      */
-    async deleteArchive(sessionNumber) {
+    async deleteArchiveBySessionNumber(sessionNumber) {
         const archive = await this.getArchive(sessionNumber);
         if (archive) {
             await archive.delete();
