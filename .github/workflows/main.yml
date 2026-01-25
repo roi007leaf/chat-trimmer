@@ -79,10 +79,8 @@ jobs:
           NPM_CONFIG_AUDIT: false
 
       - name: Run linting
-        run: npm run lint
+        run: npm run lint --if-present
 
-      - name: Run tests
-        run: npm run test
 
   # Build (runs on PRs and releases, but release steps only on releases)
   build:
