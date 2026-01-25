@@ -45,30 +45,6 @@ Hooks.once("ready", async () => {
 });
 
 /**
- * Add button to journal sidebar
- */
-Hooks.on("renderJournalDirectory", (app, html, data) => {
-  const $html = $(html);
-
-  // Find the header actions
-  const headerActions = $html.find(".directory-header .header-actions");
-
-  if (
-    headerActions.length > 0 &&
-    !headerActions.find(".view-chat-archives").length
-  ) {
-    const archiveBtn = $(`
-            <button class="view-chat-archives" data-tooltip="${game.i18n.localize("CHATTRIMMER.Buttons.ViewArchives")}">
-                <i class="fas fa-archive"></i> ${game.i18n.localize("CHATTRIMMER.Buttons.ChatArchives")}
-            </button>
-        `);
-
-    headerActions.prepend(archiveBtn);
-    archiveBtn.click(onViewArchives);
-  }
-});
-
-/**
  * Add trim buttons to chat log
  */
 Hooks.on("renderChatLog", (app, html, data) => {
@@ -105,7 +81,7 @@ Hooks.on("renderChatLog", (app, html, data) => {
     $("body").append(customMenu);
 
     // Handle menu item clicks
-    customMenu.find(".menu-item").on("click", function(e) {
+    customMenu.find(".menu-item").on("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
 
@@ -115,12 +91,12 @@ Hooks.on("renderChatLog", (app, html, data) => {
       customMenu.removeClass("show").addClass("hide");
       setTimeout(() => customMenu.hide(), 150);
 
-      switch(action) {
+      switch (action) {
         case "trim":
-          onTrimChat({ preventDefault: () => {} });
+          onTrimChat({ preventDefault: () => { } });
           break;
         case "new-session":
-          onNewSession({ preventDefault: () => {} });
+          onNewSession({ preventDefault: () => { } });
           break;
       }
     });
