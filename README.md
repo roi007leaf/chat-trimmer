@@ -345,7 +345,7 @@ Built for the Foundry VTT community to solve the chat data overload problem.
 
 ---
 
-**Version**: 1.0.0
-**Compatibility**: Foundry VTT v13+
-**Systems**: All game systems (optimized for PF2e, works with D&D 5e and others)
-**Repository**: [GitHub](https://github.com/roi007leaf/chat-trimmer)
+- **Version**: 1.0.0
+- **Compatibility**: Foundry VTT v13+
+- **Systems**: All game systems (optimized for PF2e, works with D&D 5e and others)
+- **Repository**: [GitHub](https://github.com/roi007leaf/chat-trimmer)
