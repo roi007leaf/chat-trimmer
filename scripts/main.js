@@ -161,8 +161,10 @@ Hooks.on("renderChatLog", (app, html, data) => {
  * Monitor chat messages for auto-trim
  */
 Hooks.on("createChatMessage", (message, options, userId) => {
-  // Check if we should auto-trim
-  if (game.settings.get("chat-trimmer", "autoTrimEnable")) {
+  // Check if we should auto-trim based on message count
+  const autoTrimMethod = game.settings.get("chat-trimmer", "autoTrimMethod");
+
+  if (autoTrimMethod === "messageCount") {
     const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
     const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
     const messageCount = game.messages.size;
@@ -305,38 +307,45 @@ function onViewArchives(event) {
  * Check if auto-trim should be triggered
  */
 async function checkAutoTrim() {
-  if (!game.settings.get("chat-trimmer", "autoTrimEnable")) return;
+  const autoTrimMethod = game.settings.get("chat-trimmer", "autoTrimMethod");
+
+  if (autoTrimMethod === "disabled") return;
 
   const messageCount = game.messages.size;
-  const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
-  const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
 
-  // Simple logic: trim when total messages = keep + threshold
-  // Example: keep=3, threshold=5 → trim at 8 messages
-  const trimAt = messagesToKeep + messageThreshold;
+  // Check message count method
+  if (autoTrimMethod === "messageCount") {
+    const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
+    const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
+    const trimAt = messagesToKeep + messageThreshold;
 
-  // Check message count threshold
-  if (messageCount >= trimAt) {
-    console.log(
-      `Chat Trimmer | Auto-trim triggered by message count (${messageCount}/${trimAt} = ${messagesToKeep} keep + ${messageThreshold} buffer)`,
-    );
-    await performAutoTrim();
+    if (messageCount >= trimAt) {
+      console.log(
+        `Chat Trimmer | Auto-trim triggered by message count (${messageCount}/${trimAt} = ${messagesToKeep} keep + ${messageThreshold} buffer)`,
+      );
+      await performAutoTrim();
+    }
     return;
   }
 
-  // Check time threshold
-  const lastTrimTime = game.settings.get("chat-trimmer", "lastTrimTime");
-  const timeThreshold =
-    game.settings.get("chat-trimmer", "timeThreshold") * 60 * 60 * 1000; // Convert to ms
-  const timeSinceLastTrim = Date.now() - lastTrimTime;
+  // Check time-based method
+  if (autoTrimMethod === "time") {
+    // Check if we should pause the timer when game is paused
+    const pauseTimerWithGame = game.settings.get("chat-trimmer", "pauseTimerWithGame");
+    if (pauseTimerWithGame && game.paused) {
+      console.log("Chat Trimmer | Time-based auto-trim skipped (game is paused)");
+      return;
+    }
 
-  if (
-    lastTrimTime > 0 &&
-    timeSinceLastTrim >= timeThreshold &&
-    messageCount > 50
-  ) {
-    console.log(`Chat Trimmer | Auto-trim triggered by time threshold`);
-    await performAutoTrim();
+    const timeThresholdHours = game.settings.get("chat-trimmer", "timeThreshold");
+    const lastTrimTime = game.settings.get("chat-trimmer", "lastTrimTime");
+    const timeThreshold = timeThresholdHours * 60 * 60 * 1000; // Convert to ms
+    const timeSinceLastTrim = Date.now() - lastTrimTime;
+
+    if (lastTrimTime > 0 && timeSinceLastTrim >= timeThreshold) {
+      console.log(`Chat Trimmer | Auto-trim triggered by time threshold (${(timeSinceLastTrim / (60 * 60 * 1000)).toFixed(1)} hours elapsed)`);
+      await performAutoTrim();
+    }
   }
 }
 

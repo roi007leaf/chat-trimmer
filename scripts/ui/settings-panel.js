@@ -4,11 +4,24 @@
 export class SettingsPanel {
     static register() {
         // Auto-trim settings
-        game.settings.register("chat-trimmer", "autoTrimEnable", {
-            name: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimEnable"),
-            hint: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimEnableHint"),
+        game.settings.register("chat-trimmer", "autoTrimMethod", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimMethod"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimMethodHint"),
             scope: "world",
             config: true,
+            type: String,
+            choices: {
+                disabled: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimDisabled"),
+                messageCount: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimMessageCount"),
+                time: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimTime"),
+            },
+            default: "disabled",
+        });
+
+        // Keep the old setting for backwards compatibility (hidden from UI)
+        game.settings.register("chat-trimmer", "autoTrimEnable", {
+            scope: "world",
+            config: false,
             type: Boolean,
             default: false,
         });
@@ -28,11 +41,11 @@ export class SettingsPanel {
             scope: "world",
             config: true,
             type: Number,
-            default: 500,
+            default: 50,
             range: {
-                min: 0,
-                max: 50,
-                step: 1,
+                min: 10,
+                max: 500,
+                step: 10,
             },
         });
 
@@ -56,12 +69,21 @@ export class SettingsPanel {
             scope: "world",
             config: true,
             type: Number,
-            default: 2,
+            default: 4,
             range: {
                 min: 1,
                 max: 24,
                 step: 1,
             },
+        });
+
+        game.settings.register("chat-trimmer", "pauseTimerWithGame", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.PauseTimerWithGame"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.PauseTimerWithGameHint"),
+            scope: "world",
+            config: true,
+            type: Boolean,
+            default: false,
         });
 
         // Compression settings
@@ -76,6 +98,7 @@ export class SettingsPanel {
             default: true,
         });
 
+        // Hidden settings for future features (Phase 2)
         game.settings.register("chat-trimmer", "enableDialogueCompression", {
             name: game.i18n.localize(
                 "CHATTRIMMER.Settings.EnableDialogueCompression",
@@ -84,7 +107,7 @@ export class SettingsPanel {
                 "CHATTRIMMER.Settings.EnableDialogueCompressionHint",
             ),
             scope: "world",
-            config: true,
+            config: false, // Hidden until dialogue detection is implemented
             type: Boolean,
             default: true,
         });
@@ -97,7 +120,7 @@ export class SettingsPanel {
                 "CHATTRIMMER.Settings.EnableSkillCheckClusteringHint",
             ),
             scope: "world",
-            config: true,
+            config: false, // Hidden until skill check clustering is implemented
             type: Boolean,
             default: true,
         });
@@ -108,7 +131,7 @@ export class SettingsPanel {
                 "CHATTRIMMER.Settings.PreserveItemTransfersHint",
             ),
             scope: "world",
-            config: true,
+            config: false, // Hidden until item preservation logic is implemented
             type: Boolean,
             default: true,
         });

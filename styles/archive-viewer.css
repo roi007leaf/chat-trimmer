@@ -534,6 +534,71 @@
 
 .original-messages-dialog .window-content {
   padding: 10px;
+  background: var(--color-cool-2);
+}
+
+/* Fix text contrast in original messages - Ultra aggressive approach */
+/* Default: Force ALL text elements to dark color first */
+.original-messages-dialog,
+.original-messages-dialog * {
+  color: #1a1a1a !important;
+}
+
+/* Then selectively restore light text ONLY on dark background elements */
+/* Window header/title - keep light text on dark background */
+.original-messages-dialog .window-header,
+.original-messages-dialog .window-title,
+.original-messages-dialog .window-header *,
+.original-messages-dialog header,
+.original-messages-dialog header * {
+  color: #f0f0f0 !important;
+  background: transparent !important;
+}
+
+/* Tags, badges, buttons, etc. */
+.original-messages-dialog .tag,
+.original-messages-dialog .tags,
+.original-messages-dialog .tags *,
+.original-messages-dialog [class*="badge"],
+.original-messages-dialog [class*="tag"],
+.original-messages-dialog [class*="trait"],
+.original-messages-dialog .dice-total,
+.original-messages-dialog button:not(.header-button) {
+  color: #f0f0f0 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Make links visible with distinct color */
+.original-messages-dialog a,
+.original-messages-dialog .content-link {
+  color: #2563eb !important;
+  text-decoration: underline;
+}
+
+/* Override ANY inline color styles */
+.original-messages-dialog [style*="color"],
+.original-messages-dialog * [style*="color"] {
+  color: #1a1a1a !important;
+}
+
+/* PF2e specific - force all check/roll elements to dark */
+.original-messages-dialog .pf2e,
+.original-messages-dialog .pf2e *,
+.original-messages-dialog [class*="check"],
+.original-messages-dialog [class*="check"] *,
+.original-messages-dialog [class*="roll"],
+.original-messages-dialog [class*="roll"] *,
+.original-messages-dialog [class*="result"],
+.original-messages-dialog [class*="result"] * {
+  color: #1a1a1a !important;
+}
+
+/* Dice rolls should have dark text too */
+.original-messages-dialog .dice-roll,
+.original-messages-dialog .dice-roll *:not(.dice-total),
+.original-messages-dialog .dice-formula,
+.original-messages-dialog .dice-formula * {
+  color: #1a1a1a !important;
 }
 
 /* Wrapper for chat message - allow it to render naturally */
@@ -549,40 +614,7 @@
   box-shadow: 0 2px 4px var(--color-shadow-primary);
 }
 
-/* Override text colors only where needed for better contrast in dialog */
-/* Preserve light text on dark background elements, force dark text on light backgrounds */
-
-/* Force light text on known dark background elements */
-.original-messages-dialog .chat-message button,
-.original-messages-dialog .chat-message .tag,
-.original-messages-dialog .chat-message .tags,
-.original-messages-dialog .chat-message [class*="tag"],
-.original-messages-dialog .chat-message [class*="trait"],
-.original-messages-dialog .chat-message .dice-roll,
-.original-messages-dialog .chat-message .dice-formula,
-.original-messages-dialog .chat-message .dice-total,
-.original-messages-dialog .chat-message .dice-tooltip,
-.original-messages-dialog .chat-message [style*="background: rgb"],
-.original-messages-dialog .chat-message [style*="background:rgb"],
-.original-messages-dialog .chat-message [style*="background-color: rgb"],
-.original-messages-dialog .chat-message [style*="background-color:rgb"],
-.original-messages-dialog .chat-message [data-visibility],
-.original-messages-dialog .chat-message [data-visibility-gm],
-.original-messages-dialog .chat-message .card-header,
-.original-messages-dialog .chat-message .card-content header {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Ensure nested elements within dark backgrounds also have light text */
-.original-messages-dialog .chat-message button *,
-.original-messages-dialog .chat-message .tag *,
-.original-messages-dialog .chat-message .dice-roll *,
-.original-messages-dialog .chat-message .dice-formula *,
-.original-messages-dialog .chat-message .dice-tooltip *,
-.original-messages-dialog .chat-message [data-visibility] *,
-.original-messages-dialog .chat-message [data-visibility-gm] * {
-  color: inherit !important;
-}
+/* Removed conflicting CSS - using unified approach above */
 
 .original-messages,
 .original-messages-dialog {
