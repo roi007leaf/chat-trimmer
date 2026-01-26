@@ -1,3 +1,9 @@
+[![Latest Version](https://img.shields.io/github/v/release/roi007leaf/chat-trimmer?display_name=tag&sort=semver&label=Latest%20Version)](https://github.com/roi007leaf/chat-trimmer/releases/latest)
+
+[![GitHub all releases](https://img.shields.io/github/downloads/roi007leaf/chat-trimmer/total)](https://github.com/roi007leaf/chat-trimmer/releases)
+
+[![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fchat-trimmer)](https://forge-vtt.com/bazaar)
+
 # Chat Trimmer
 
 A Foundry VTT module that automatically compresses chat history using intelligent pattern recognition. Reduces memory usage by 80-90% while preserving important information in searchable, organized archives. **No LLM or external services required!**
