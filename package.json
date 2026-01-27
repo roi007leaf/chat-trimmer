@@ -1,6 +1,6 @@
 {
   "name": "chat-trimmer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Foundry VTT module that automatically compresses chat history using intelligent pattern recognition. Reduces memory usage by 80-90% while preserving important information in searchable, organized archives. **No LLM or external services required!**",
   "homepage": "https://github.com/roi007leaf/chat-trimmer#readme",
   "scripts": {

@@ -93,10 +93,10 @@ Hooks.on("renderChatLog", (app, html, data) => {
 
       switch (action) {
         case "trim":
-          onTrimChat({ preventDefault: () => { } });
+          onTrimChat({ preventDefault: () => {} });
           break;
         case "new-session":
-          onNewSession({ preventDefault: () => { } });
+          onNewSession({ preventDefault: () => {} });
           break;
       }
     });
@@ -109,7 +109,9 @@ Hooks.on("renderChatLog", (app, html, data) => {
       const buttonRect = trimmerButton[0].getBoundingClientRect();
 
       // Show menu to measure it
-      customMenu.css({ display: "block", visibility: "hidden" }).removeClass("show hide");
+      customMenu
+        .css({ display: "block", visibility: "hidden" })
+        .removeClass("show hide");
       const menuWidth = customMenu.outerWidth();
       const menuHeight = customMenu.outerHeight();
       customMenu.css({ visibility: "visible" });
@@ -132,7 +134,7 @@ Hooks.on("renderChatLog", (app, html, data) => {
       customMenu.css({
         position: "fixed",
         left: `${left}px`,
-        top: `${top}px`
+        top: `${top}px`,
       });
 
       // Trigger animation
@@ -147,7 +149,11 @@ Hooks.on("renderChatLog", (app, html, data) => {
 
     // Close menu when clicking outside
     $(document).on("click", (event) => {
-      if (!$(event.target).closest(".chat-trimmer-dropdown, .chat-trimmer-menu-btn").length) {
+      if (
+        !$(event.target).closest(
+          ".chat-trimmer-dropdown, .chat-trimmer-menu-btn",
+        ).length
+      ) {
         if (customMenu.is(":visible")) {
           customMenu.removeClass("show").addClass("hide");
           setTimeout(() => customMenu.hide(), 150);
@@ -166,7 +172,10 @@ Hooks.on("createChatMessage", (message, options, userId) => {
 
   if (autoTrimMethod === "messageCount") {
     const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
-    const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
+    const messageThreshold = game.settings.get(
+      "chat-trimmer",
+      "messageThreshold",
+    );
     const messageCount = game.messages.size;
 
     // Simple logic: trim when total messages = keep + threshold
@@ -235,13 +244,18 @@ async function onNewSession(event) {
     return;
   }
 
-  const currentSession = game.settings.get("chat-trimmer", "currentSessionName");
+  const currentSession = game.settings.get(
+    "chat-trimmer",
+    "currentSessionName",
+  );
   let currentNumber = game.settings.get("chat-trimmer", "currentSessionNumber");
 
   // Check archive index for the actual highest session number
   const archiveIndex = game.settings.get("chat-trimmer", "archiveIndex") || [];
   if (archiveIndex.length > 0) {
-    const highestArchiveSession = Math.max(...archiveIndex.map(a => a.sessionNumber || 0));
+    const highestArchiveSession = Math.max(
+      ...archiveIndex.map((a) => a.sessionNumber || 0),
+    );
     // Use whichever is higher: the setting or the actual archives
     currentNumber = Math.max(currentNumber, highestArchiveSession);
   }
@@ -269,14 +283,26 @@ async function onNewSession(event) {
           const newNumber = currentNumber + 1;
           const newName = `Session ${newNumber}`;
 
-          await game.settings.set("chat-trimmer", "currentSessionNumber", newNumber);
-          await game.settings.set("chat-trimmer", "currentSessionName", newName);
-          await game.settings.set("chat-trimmer", "currentSessionStartTime", Date.now());
+          await game.settings.set(
+            "chat-trimmer",
+            "currentSessionNumber",
+            newNumber,
+          );
+          await game.settings.set(
+            "chat-trimmer",
+            "currentSessionName",
+            newName,
+          );
+          await game.settings.set(
+            "chat-trimmer",
+            "currentSessionStartTime",
+            Date.now(),
+          );
 
           ui.notifications.info(
             game.i18n.format("CHATTRIMMER.Notifications.NewSessionStarted", {
               sessionName: newName,
-            })
+            }),
           );
         },
       },
@@ -316,7 +342,10 @@ async function checkAutoTrim() {
   // Check message count method
   if (autoTrimMethod === "messageCount") {
     const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
-    const messageThreshold = game.settings.get("chat-trimmer", "messageThreshold");
+    const messageThreshold = game.settings.get(
+      "chat-trimmer",
+      "messageThreshold",
+    );
     const trimAt = messagesToKeep + messageThreshold;
 
     if (messageCount >= trimAt) {
@@ -331,19 +360,29 @@ async function checkAutoTrim() {
   // Check time-based method
   if (autoTrimMethod === "time") {
     // Check if we should pause the timer when game is paused
-    const pauseTimerWithGame = game.settings.get("chat-trimmer", "pauseTimerWithGame");
+    const pauseTimerWithGame = game.settings.get(
+      "chat-trimmer",
+      "pauseTimerWithGame",
+    );
     if (pauseTimerWithGame && game.paused) {
-      console.log("Chat Trimmer | Time-based auto-trim skipped (game is paused)");
+      console.log(
+        "Chat Trimmer | Time-based auto-trim skipped (game is paused)",
+      );
       return;
     }
 
-    const timeThresholdHours = game.settings.get("chat-trimmer", "timeThreshold");
+    const timeThresholdHours = game.settings.get(
+      "chat-trimmer",
+      "timeThreshold",
+    );
     const lastTrimTime = game.settings.get("chat-trimmer", "lastTrimTime");
     const timeThreshold = timeThresholdHours * 60 * 60 * 1000; // Convert to ms
     const timeSinceLastTrim = Date.now() - lastTrimTime;
 
     if (lastTrimTime > 0 && timeSinceLastTrim >= timeThreshold) {
-      console.log(`Chat Trimmer | Auto-trim triggered by time threshold (${(timeSinceLastTrim / (60 * 60 * 1000)).toFixed(1)} hours elapsed)`);
+      console.log(
+        `Chat Trimmer | Auto-trim triggered by time threshold (${(timeSinceLastTrim / (60 * 60 * 1000)).toFixed(1)} hours elapsed)`,
+      );
       await performAutoTrim();
     }
   }
@@ -462,6 +501,74 @@ window.ChatTrimmer = {
       URL.revokeObjectURL(url);
     }
   },
+
+  /**
+   * Diagnostic tool: Log CSS styles for elements in the Original Message dialog
+   * Usage: ChatTrimmer.debugStyles() - then click on elements to see their computed styles
+   */
+  debugStyles() {
+    console.log("Chat Trimmer | CSS Debug Mode activated");
+    console.log(
+      "Click on any element in an Original Message dialog to log its styles",
+    );
+    console.log("Run ChatTrimmer.debugStyles() again to disable");
+
+    if (window._chatTrimmerDebugHandler) {
+      // Remove existing handler
+      document.removeEventListener(
+        "click",
+        window._chatTrimmerDebugHandler,
+        true,
+      );
+      window._chatTrimmerDebugHandler = null;
+      console.log("Chat Trimmer | CSS Debug Mode deactivated");
+      return;
+    }
+
+    window._chatTrimmerDebugHandler = (event) => {
+      const target = event.target;
+      const dialog = target.closest(".original-messages-dialog");
+
+      if (!dialog) return; // Only log clicks inside Original Message dialogs
+
+      event.stopPropagation();
+      event.preventDefault();
+
+      const computed = window.getComputedStyle(target);
+      const classList = Array.from(target.classList);
+
+      console.group(
+        `Element: ${target.tagName.toLowerCase()}${classList.length ? "." + classList.join(".") : ""}`,
+      );
+      console.log("Element:", target);
+      console.log("Classes:", classList);
+      console.log("Computed color:", computed.color);
+      console.log("Computed background:", computed.backgroundColor);
+      console.log("Inline style:", target.getAttribute("style"));
+      console.log("Text content:", target.textContent?.substring(0, 100));
+
+      // Check parent background
+      const parent = target.parentElement;
+      if (parent) {
+        const parentComputed = window.getComputedStyle(parent);
+        console.log("Parent background:", parentComputed.backgroundColor);
+      }
+
+      // Log matching CSS rules
+      console.log(
+        "Matching trait/badge/tag classes:",
+        classList.some(
+          (c) =>
+            c.includes("trait") || c.includes("badge") || c.includes("tag"),
+        ),
+      );
+      console.log("Has flavor-text class:", classList.includes("flavor-text"));
+
+      console.groupEnd();
+    };
+
+    document.addEventListener("click", window._chatTrimmerDebugHandler, true);
+  },
 };
 
 console.log("Chat Trimmer | Module loaded. Access via window.ChatTrimmer");
@@ -473,7 +580,9 @@ Hooks.on("renderSettings", (app, html, data) => {
   // Only GM can manage sessions
   if (!game.user.isGM) return;
 
-  const setupBtn = html.find('button[data-action="setup"]');
+  // Ensure html is a jQuery object
+  const $html = $(html);
+  const setupBtn = $html.find('button[data-action="setup"]');
   if (setupBtn.length) {
     // Clone and replace to strip existing listeners
     // Use clone(false) (default) to drop data/events

@@ -71,14 +71,33 @@ All notable changes to the Chat Trimmer & Summarizer module will be documented i
 - **Original Message Dialog Text Contrast**: Completely resolved white-on-white text visibility issue
   - Implemented ultra-aggressive CSS approach: force all text to dark by default
   - Selectively restore light text only on confirmed dark background elements (tags, badges, buttons)
-  - Override all inline color styles that could cause white text
+  - Override all inline color styles that could cause white text (including rgba formats)
   - Better visibility for dice rolls, results, formulas, and check elements
   - Enhanced styling for PF2e-specific elements with proper contrast
+  - Added comprehensive targeting of card elements (card, message-card, chat-card)
+  - Explicit dark text rules for all card child elements (span, div, p, label, strong, em)
+  - Special handling for degree-of-success, DC, and result elements
+  - Fixed trait badges showing black text on black backgrounds by excluding them from dark text rules
+  - Trait/badge/tag child elements now properly maintain light text on dark backgrounds
+  - Excluded flavor-text elements (which have dark backgrounds) from forced dark text rules
+  - Added comprehensive :not() exclusions to prevent traits/badges/tags from being forced dark
+  - Flavor text elements forced to light text (#f0f0f0) while respecting native backgrounds
+  - Message sender elements explicitly set to dark text to prevent white-on-white issues
+  - Portrait images and containers fully transparent - no backgrounds or filters applied
+  - Uses CSS :has() selector to ensure all image wrapper elements are transparent
+  - Excluded flavor-text from inline color style overrides to prevent white text being forced dark
+  - Added dark semi-transparent background to flavor text for guaranteed contrast
+  - Enhanced portrait container transparency rules to target all child elements and wrappers
 
 - **Trade Message Categorization**: Trade/merchant messages no longer incorrectly appear under "Emotes"
   - Added detection for trade patterns (sells, buys, merchant)
   - Trade messages now properly categorized under "Items"
   - Improved item transfer detection
+
+- **Critical Miss Detection**: "Critical Miss" events now properly detected and styled with red coloring
+  - Added "critical miss" to failure detection keywords (previously only detected "critical fail" and "fumble")
+  - Critical misses now get proper eventType classification as "critical-failure"
+  - Consistent styling with critical successes (same structure, red vs green colors)
 
 ### Improved
 
@@ -102,6 +121,19 @@ All notable changes to the Chat Trimmer & Summarizer module will be documented i
   - Better color contrast for critical events
   - Consistent styling across all category types
 
+- **Combat and Action Formatting**:
+  - Strike/attack displays now include the actor's name (e.g., "Calder: Longsword Strike → Flint")
+  - Weapon/strike type extraction from multiple sources (flags, flavor text)
+  - Parses flavor text to extract weapon name when not in flags
+  - Strips HTML tags from flavor text before parsing to prevent HTML leakage in key events
+  - Improved regex pattern to match weapon name after last colon in flavor text (more flexible)
+  - Validates extracted weapon names (length < 30 chars, no sentence-ending periods)
+  - Automatically appends "Strike" suffix if not already present in extracted name
+  - Damage roll displays now include the actor's name
+  - Spell cast displays now include the caster's name
+  - Skill check/roll displays now include the actor's name
+  - More informative combat log entries showing who performed each action with what weapon
+
 ### Technical
 
 - Added `eventType` field to key events for CSS styling
@@ -112,6 +144,9 @@ All notable changes to the Chat Trimmer & Summarizer module will be documented i
 - Added `pauseTimerWithGame` setting to control time-based trim behavior during pause
 - Time-based trimming checks `game.paused` state when pause setting is enabled
 - Hidden unused settings (Dialogue Compression, Skill Check Clustering, Preserve Item Transfers) until features are implemented
+- Added `ChatTrimmer.debugStyles()` console utility for diagnosing CSS issues in Original Message dialogs
+  - Click-to-inspect functionality logs computed styles, backgrounds, and CSS class matches
+  - Helps identify text contrast issues and conflicting CSS rules
 
 ## [Unreleased]
 

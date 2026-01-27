@@ -100,38 +100,62 @@
   outline: none;
   border-color: rgba(94, 93, 82, 0.7);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(94, 93, 82, 0.2);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(94, 93, 82, 0.2);
 }
 
 .archive-header .delete-current-archive,
 .archive-header .delete-all-archives {
   padding: 7px 13px;
-  background: linear-gradient(135deg, rgba(180, 60, 50, 0.7) 0%, rgba(150, 40, 35, 0.7) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(180, 60, 50, 0.7) 0%,
+    rgba(150, 40, 35, 0.7) 100%
+  );
   border: 1px solid rgba(200, 80, 70, 0.4);
   border-radius: 5px;
   color: var(--color-text-light-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.15);
   font-size: 14px;
 }
 
 .archive-header .delete-current-archive:hover {
-  background: linear-gradient(135deg, rgba(200, 70, 60, 0.85) 0%, rgba(170, 50, 45, 0.85) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(200, 70, 60, 0.85) 0%,
+    rgba(170, 50, 45, 0.85) 100%
+  );
   border-color: rgba(220, 100, 90, 0.6);
-  box-shadow: 0 3px 8px rgba(255, 80, 60, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 3px 8px rgba(255, 80, 60, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
 .archive-header .delete-all-archives {
-  background: linear-gradient(135deg, rgba(200, 50, 40, 0.8) 0%, rgba(170, 30, 25, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(200, 50, 40, 0.8) 0%,
+    rgba(170, 30, 25, 0.8) 100%
+  );
 }
 
 .archive-header .delete-all-archives:hover {
-  background: linear-gradient(135deg, rgba(220, 60, 50, 0.95) 0%, rgba(190, 40, 35, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(220, 60, 50, 0.95) 0%,
+    rgba(190, 40, 35, 0.95) 100%
+  );
   border-color: rgba(240, 100, 90, 0.7);
-  box-shadow: 0 3px 10px rgba(255, 60, 40, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 3px 10px rgba(255, 60, 40, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.25);
   transform: translateY(-1px);
 }
 
@@ -151,7 +175,11 @@
 /* Controls styling */
 .archive-controls {
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.15) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
   border-bottom: 1px solid rgba(94, 93, 82, 0.3);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -242,14 +270,18 @@
 .category-filter:hover {
   border-color: rgba(94, 93, 82, 0.5);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .category-filter:focus {
   outline: none;
   border-color: rgba(94, 93, 82, 0.7);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(94, 93, 82, 0.2);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(94, 93, 82, 0.2);
 }
 
 .archive-search {
@@ -276,7 +308,9 @@
   outline: none;
   border-color: rgba(94, 93, 82, 0.7);
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(94, 93, 82, 0.2);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(94, 93, 82, 0.2);
 }
 
 .archive-search::placeholder {
@@ -332,15 +366,23 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
   border: 1px solid rgba(94, 93, 82, 0.3);
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
 .archive-entry:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15);
   border-color: rgba(94, 93, 82, 0.5);
   transform: translateY(-1px);
 }
@@ -392,14 +434,20 @@
 
 .view-original-btn {
   padding: 8px 12px;
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.6) 0%, rgba(74, 73, 65, 0.5) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.6) 0%,
+    rgba(74, 73, 65, 0.5) 100%
+  );
   color: var(--color-text-light-primary);
   border: 1px solid rgba(94, 93, 82, 0.4);
   border-radius: 5px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -407,9 +455,15 @@
 }
 
 .view-original-btn:hover {
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.8) 0%, rgba(74, 73, 65, 0.7) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.8) 0%,
+    rgba(74, 73, 65, 0.7) 100%
+  );
   border-color: rgba(94, 93, 82, 0.6);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
 }
 
@@ -446,84 +500,142 @@
 /* Category-specific accent colors */
 .archive-entry.combat {
   border-left: 5px solid #c53131;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(197, 49, 49, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(197, 49, 49, 0.15);
 }
 
 .archive-entry.combat:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(197, 49, 49, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(197, 49, 49, 0.25);
 }
 
 .archive-entry.rolls {
   border-left: 5px solid #5e5d52;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(94, 93, 82, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(94, 93, 82, 0.15);
 }
 
 .archive-entry.rolls:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(94, 93, 82, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(94, 93, 82, 0.25);
 }
 
 .archive-entry.speech {
   border-left: 5px solid #4a90e2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(74, 144, 226, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(74, 144, 226, 0.15);
 }
 
 .archive-entry.speech:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(74, 144, 226, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(74, 144, 226, 0.25);
 }
 
 .archive-entry.emotes {
   border-left: 5px solid #9b59b6;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(155, 89, 182, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(155, 89, 182, 0.15);
 }
 
 .archive-entry.emotes:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(155, 89, 182, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(155, 89, 182, 0.25);
 }
 
 .archive-entry.whispers {
   border-left: 5px solid #7f8c8d;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(127, 140, 141, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(127, 140, 141, 0.15);
 }
 
 .archive-entry.whispers:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(127, 140, 141, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(127, 140, 141, 0.25);
 }
 
 .archive-entry.healing {
   border-left: 5px solid #27ae60;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(39, 174, 96, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(39, 174, 96, 0.15);
 }
 
 .archive-entry.healing:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(39, 174, 96, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(39, 174, 96, 0.25);
 }
 
 .archive-entry.items {
   border-left: 5px solid #f39c12;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(243, 156, 18, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(243, 156, 18, 0.15);
 }
 
 .archive-entry.items:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(243, 156, 18, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(243, 156, 18, 0.25);
 }
 
 .archive-entry.important {
   border-left: 5px solid #e74c3c;
-  background: linear-gradient(135deg, rgba(255, 235, 205, 0.15) 0%, rgba(255, 240, 220, 0.1) 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(231, 76, 60, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 235, 205, 0.15) 0%,
+    rgba(255, 240, 220, 0.1) 100%
+  );
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(231, 76, 60, 0.2);
 }
 
 .archive-entry.important:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(231, 76, 60, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(231, 76, 60, 0.3);
 }
 
 .archive-entry.system {
   border-left: 5px solid #95a5a6;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1), inset 5px 0 8px rgba(149, 165, 166, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 5px 0 8px rgba(149, 165, 166, 0.15);
 }
 
 .archive-entry.system:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15), inset 5px 0 12px rgba(149, 165, 166, 0.25);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 5px 0 12px rgba(149, 165, 166, 0.25);
 }
 
 /* Original Messages Dialog */
@@ -555,13 +667,16 @@
   background: transparent !important;
 }
 
-/* Tags, badges, buttons, etc. */
-.original-messages-dialog .tag,
-.original-messages-dialog .tags,
-.original-messages-dialog .tags *,
-.original-messages-dialog [class*="badge"],
-.original-messages-dialog [class*="tag"],
-.original-messages-dialog [class*="trait"],
+/* Tags, badges, buttons, traits - MUST have light text on dark backgrounds */
+.original-messages-dialog .tag:not(img),
+.original-messages-dialog .tags:not(img),
+.original-messages-dialog .tags *:not(img),
+.original-messages-dialog [class*="badge"]:not(img),
+.original-messages-dialog [class*="badge"] *:not(img),
+.original-messages-dialog [class*="tag"]:not(img),
+.original-messages-dialog [class*="tag"] *:not(img),
+.original-messages-dialog [class*="trait"]:not(img),
+.original-messages-dialog [class*="trait"] *:not(img),
 .original-messages-dialog .dice-total,
 .original-messages-dialog button:not(.header-button) {
   color: #f0f0f0 !important;
@@ -575,21 +690,120 @@
   text-decoration: underline;
 }
 
-/* Override ANY inline color styles */
-.original-messages-dialog [style*="color"],
-.original-messages-dialog * [style*="color"] {
+/* Override ANY inline color styles - but NOT for specific dark bg elements or flavor text */
+.original-messages-dialog
+  [style*="color"]:not(.dice-total):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not([class*="trait"]):not([class*="flavor"]):not(.flavor-text):not(button),
+.original-messages-dialog
+  *
+  [style*="color"]:not(.dice-total):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not([class*="trait"]):not([class*="flavor"]):not(.flavor-text):not(button) {
   color: #1a1a1a !important;
 }
 
-/* PF2e specific - force all check/roll elements to dark */
-.original-messages-dialog .pf2e,
-.original-messages-dialog .pf2e *,
-.original-messages-dialog [class*="check"],
-.original-messages-dialog [class*="check"] *,
-.original-messages-dialog [class*="roll"],
-.original-messages-dialog [class*="roll"] *,
-.original-messages-dialog [class*="result"],
-.original-messages-dialog [class*="result"] * {
+/* Specifically target any white or light colored text and force it dark - but NOT flavor text */
+.original-messages-dialog
+  [style*="color: white"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color: #fff"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color: #FFF"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color: rgb(255, 255, 255)"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color:#fff"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color:#FFF"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color: rgba(255, 255, 255"]:not(.flavor-text):not([class*="flavor"]),
+.original-messages-dialog
+  [style*="color:rgba(255,255,255"]:not(.flavor-text):not([class*="flavor"]) {
+  color: #1a1a1a !important;
+}
+
+/* Target all child elements of cards to ensure no white text escapes - but NOT badges/traits */
+.original-messages-dialog
+  .card
+  span:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .card
+  div:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .card
+  p:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .card
+  label:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .card
+  strong:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .card
+  em:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .message-card
+  span:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .message-card
+  div:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .message-card
+  p:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .message-card
+  label:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .chat-card
+  span:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .chat-card
+  div:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .chat-card
+  p:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]),
+.original-messages-dialog
+  .chat-card
+  label:not([class*="badge"]):not([class*="trait"]):not([class*="tag"]) {
+  color: #1a1a1a !important;
+}
+
+/* PF2e specific - force check/roll elements to dark, BUT NOT traits/badges/tags or flavor text */
+.original-messages-dialog
+  .pf2e:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  .pf2e
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  [class*="check"]:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog
+  [class*="check"]
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  [class*="roll"]:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog
+  [class*="roll"]
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ):not(.dice-total),
+.original-messages-dialog
+  [class*="result"]:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ),
+.original-messages-dialog
+  [class*="result"]
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]) {
   color: #1a1a1a !important;
 }
 
@@ -599,6 +813,82 @@
 .original-messages-dialog .dice-formula,
 .original-messages-dialog .dice-formula * {
   color: #1a1a1a !important;
+}
+
+/* Message timestamps - absolute positioning in top right */
+.original-messages-dialog .message-timestamp,
+.original-messages-dialog [class*="timestamp"]:not([class*="check"]),
+.original-messages-dialog time {
+  color: #1a1a1a !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-weight: 600 !important;
+}
+
+/* Check/roll elements - add light background for visibility */
+.original-messages-dialog [class*="check"],
+.original-messages-dialog [class*="roll"]:not(.dice-total) {
+  background: rgba(255, 255, 255, 0.6) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+}
+
+/* Images and portraits - NO background changes, NO opacity changes, NO filters */
+.original-messages-dialog img,
+.original-messages-dialog [class*="portrait"],
+.original-messages-dialog [class*="portrait"] img,
+.original-messages-dialog [class*="avatar"],
+.original-messages-dialog [class*="avatar"] img,
+.original-messages-dialog picture,
+.original-messages-dialog picture img,
+.original-messages-dialog figure,
+.original-messages-dialog figure img,
+.original-messages-dialog canvas,
+.original-messages-dialog .message-sender img,
+.original-messages-dialog .chat-portrait,
+.original-messages-dialog .token-image {
+  background: none !important;
+  background-color: transparent !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Message metadata and card content - ensure dark text, but NOT flavor-text (has dark bg) */
+.original-messages-dialog .message-metadata,
+.original-messages-dialog .message-sender:not(.flavor-text),
+.original-messages-dialog .message-sender:not(.flavor-text) *,
+.original-messages-dialog
+  .card-content
+  span:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  .card-content
+  div:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  .card-content
+  p:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  .card-content
+  label:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ) {
+  color: #1a1a1a !important;
+}
+
+/* Flavor text - force light text with dark background for contrast */
+.original-messages-dialog .flavor-text,
+.original-messages-dialog .flavor-text *,
+.original-messages-dialog h4.flavor-text,
+.original-messages-dialog [class*="flavor"] {
+  color: #f0f0f0 !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  padding: 2px 4px !important;
 }
 
 /* Wrapper for chat message - allow it to render naturally */
@@ -612,6 +902,112 @@
   margin: 0;
   border-radius: 4px;
   box-shadow: 0 2px 4px var(--color-shadow-primary);
+}
+
+/* Message cards and containers - no bg on image areas */
+.original-messages-dialog .message-content img,
+.original-messages-dialog .card-buttons img,
+.original-messages-dialog .chat-portrait,
+.original-messages-dialog .token-image,
+.original-messages-dialog .message-header img,
+.original-messages-dialog .message-sender img {
+  background: none !important;
+  background-color: transparent !important;
+}
+
+/* Containers around images should also be transparent - target all possible wrappers */
+.original-messages-dialog .portrait-container,
+.original-messages-dialog .portrait-container *:not(img),
+.original-messages-dialog .avatar-container,
+.original-messages-dialog .avatar-container *:not(img),
+.original-messages-dialog .token-container,
+.original-messages-dialog .token-container *:not(img),
+.original-messages-dialog .message-sender:has(img),
+.original-messages-dialog .message-sender:has(img) *:not(img),
+.original-messages-dialog [class*="sender"]:has(img),
+.original-messages-dialog [class*="sender"]:has(img) *:not(img),
+.original-messages-dialog [class*="header"]:has(img),
+.original-messages-dialog [class*="header"]:has(img) *:not(img),
+.original-messages-dialog div:has(> img),
+.original-messages-dialog div:has(> img) > *:not(img),
+.original-messages-dialog div:has(> .chat-portrait),
+.original-messages-dialog div:has(> .chat-portrait) > *:not(img),
+.original-messages-dialog div:has(> [class*="portrait"]),
+.original-messages-dialog div:has(> [class*="portrait"]) > *:not(img) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* PF2e Card Elements - Force text dark, but NOT traits/badges/tags or flavor-text */
+.original-messages-dialog
+  .card:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]):not(
+    .flavor-text
+  ),
+.original-messages-dialog
+  .card
+  *:not(img):not(picture):not(figure):not(canvas):not([class*="trait"]):not(
+    [class*="badge"]
+  ):not([class*="tag"]):not(.flavor-text),
+.original-messages-dialog
+  .message-card:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog
+  .message-card
+  *:not(img):not(picture):not(figure):not(canvas):not([class*="trait"]):not(
+    [class*="badge"]
+  ):not([class*="tag"]):not(.flavor-text),
+.original-messages-dialog
+  .chat-card:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog
+  .chat-card
+  *:not(img):not(picture):not(figure):not(canvas):not([class*="trait"]):not(
+    [class*="badge"]
+  ):not([class*="tag"]):not(.flavor-text) {
+  color: #1a1a1a !important;
+}
+
+/* PF2e specific card sections - but NOT traits/badges/tags or flavor-text */
+.original-messages-dialog .card-content:not(.flavor-text),
+.original-messages-dialog
+  .card-content
+  *:not(img):not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog .card-header:not(.flavor-text),
+.original-messages-dialog
+  .card-header
+  *:not(img):not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ):not(.flavor-text),
+.original-messages-dialog .degree-of-success,
+.original-messages-dialog
+  .degree-of-success
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]),
+.original-messages-dialog
+  [class*="dc"]:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]),
+.original-messages-dialog
+  [class*="dc"]
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]),
+.original-messages-dialog
+  [class*="result"]:not([class*="trait"]):not([class*="badge"]):not(
+    [class*="tag"]
+  ),
+.original-messages-dialog
+  [class*="result"]
+  *:not([class*="trait"]):not([class*="badge"]):not([class*="tag"]) {
+  color: #1a1a1a !important;
+  background-color: transparent !important;
+}
+
+/* Ensure card backgrounds don't affect images */
+.original-messages-dialog .card img,
+.original-messages-dialog .message-card img,
+.original-messages-dialog .chat-card img {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Removed conflicting CSS - using unified approach above */
@@ -833,7 +1229,11 @@
   padding: 0.4rem 0.75rem;
   font-size: 11px;
   font-weight: 600;
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.5) 0%, rgba(74, 73, 65, 0.4) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.5) 0%,
+    rgba(74, 73, 65, 0.4) 100%
+  );
   border: 1px solid rgba(94, 93, 82, 0.35);
   border-radius: 4px;
   color: var(--color-text-light-primary);
@@ -845,7 +1245,11 @@
 }
 
 .view-original-sub:hover {
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.7) 0%, rgba(74, 73, 65, 0.6) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.7) 0%,
+    rgba(74, 73, 65, 0.6) 100%
+  );
   border-color: rgba(94, 93, 82, 0.5);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
@@ -859,10 +1263,16 @@
 .session-summary {
   margin: 1rem;
   padding: 0;
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.15) 0%, rgba(74, 73, 65, 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.15) 0%,
+    rgba(74, 73, 65, 0.1) 100%
+  );
   border: 1px solid rgba(94, 93, 82, 0.3);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -896,7 +1306,9 @@
 .summary-header .toggle-icon {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.7);
-  transition: transform 0.3s ease, color 0.2s ease;
+  transition:
+    transform 0.3s ease,
+    color 0.2s ease;
 }
 
 .summary-header:hover .toggle-icon {
@@ -911,7 +1323,9 @@
   max-height: 500px;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transition:
+    max-height 0.3s ease-in-out,
+    opacity 0.3s ease-in-out;
   opacity: 1;
   padding: 0.75rem;
 }
@@ -956,7 +1370,9 @@
   border: 1px solid rgba(94, 93, 82, 0.25);
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .summary-section:hover {
@@ -979,7 +1395,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 200px;
+  max-height: 120px; /* Reduced to give more space to key events */
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1028,9 +1444,10 @@
 .summary-section.key-events {
   grid-column: 1 / -1;
   background: rgba(0, 0, 0, 0.25);
-  max-height: 250px;
+  max-height: 400px; /* Increased to show more key events */
   overflow-y: auto;
   border: 1px solid rgba(94, 93, 82, 0.3);
+  padding-bottom: 1rem; /* Ensure bottom content isn't cut off */
 }
 
 .summary-section.key-events::-webkit-scrollbar {
@@ -1070,7 +1487,7 @@
 }
 
 .key-event:last-child {
-  margin-bottom: 0;
+  margin-bottom: 0.35rem; /* Add margin to prevent cut-off */
 }
 
 .key-event:hover {
@@ -1192,7 +1609,9 @@
   z-index: 10000;
   opacity: 0;
   transform: translateY(5px) scale(0.95);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   display: none;
 }
 
@@ -1240,7 +1659,11 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.2) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
   border-top: 1px solid rgba(94, 93, 82, 0.3);
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -1260,7 +1683,11 @@
 
 .pagination-btn {
   padding: 6px 12px;
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.6) 0%, rgba(74, 73, 65, 0.5) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.6) 0%,
+    rgba(74, 73, 65, 0.5) 100%
+  );
   color: var(--color-text-light-primary);
   border: 1px solid rgba(94, 93, 82, 0.4);
   border-radius: 5px;
@@ -1275,7 +1702,11 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(94, 93, 82, 0.8) 0%, rgba(74, 73, 65, 0.7) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(94, 93, 82, 0.8) 0%,
+    rgba(74, 73, 65, 0.7) 100%
+  );
   border-color: rgba(94, 93, 82, 0.6);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
