@@ -2,6 +2,16 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [1.0.4] - 2026-01-28
+
+### Changed
+
+- Remove jQuery usage; use native DOM/events
+
+### Fixed
+
+- Original Message: sender/flavor labels no longer white-on-light
+
 ## [1.0.0] - 2026-01-19
 
 ### Added

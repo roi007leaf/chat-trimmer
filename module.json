@@ -2,7 +2,7 @@
   "id": "chat-trimmer",
   "title": "Chat Trimmer",
   "description": "Automatically compress chat history using intelligent pattern recognition. Reduces memory usage while preserving important information in searchable, organized archives. No LLM required!",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "authors": [
     {
       "name": "Roi007leaf"

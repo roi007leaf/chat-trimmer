@@ -48,118 +48,141 @@ Hooks.once("ready", async () => {
  * Add trim buttons to chat log
  */
 Hooks.on("renderChatLog", (app, html, data) => {
-  // Ensure html is a jQuery object
-  const $html = $(html);
+  const root = html?.[0] ?? html;
+  if (!root?.querySelector) return;
 
-  // Add trim controls to chat
-  const controls = $html.find("#chat-controls");
+  const controls = root.querySelector("#chat-controls");
+  if (!controls) return;
 
-  if (controls.length > 0 && !controls.find("#chat-trimmer-menu-btn").length) {
-    // Single button that opens a menu on right-click
-    const trimmerButton = $(`
-      <a class="chat-control-icon chat-trimmer-menu-btn" id="chat-trimmer-menu-btn" role="button" data-tooltip="Chat Trimmer (Right-click for menu)" aria-label="Chat Trimmer">
-        <i class="fas fa-archive"></i>
-      </a>
-    `);
+  // Only init once
+  if (controls.querySelector("#chat-trimmer-menu-btn")) return;
 
-    controls.append(trimmerButton);
+  const ensureMenu = () => {
+    let menu = document.querySelector("#chat-trimmer-dropdown");
+    if (menu) return menu;
 
-    // Create custom dropdown menu
-    const customMenu = $(`
-      <div class="chat-trimmer-dropdown">
-        <div class="menu-item" data-action="trim">
-          <i class="fas fa-compress-alt"></i>
-          <span>${game.i18n.localize("CHATTRIMMER.Buttons.TrimChat")}</span>
-        </div>
-        <div class="menu-item" data-action="new-session">
-          <i class="fas fa-plus-circle"></i>
-          <span>${game.i18n.localize("CHATTRIMMER.Buttons.NewSession")}</span>
-        </div>
-      </div>
-    `);
+    menu = document.createElement("div");
+    menu.id = "chat-trimmer-dropdown";
+    menu.className = "chat-trimmer-dropdown";
+    menu.style.display = "none";
 
-    $("body").append(customMenu);
+    const mkItem = (action, iconClass, label) => {
+      const item = document.createElement("div");
+      item.className = "menu-item";
+      item.dataset.action = action;
+      item.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
+      return item;
+    };
 
-    // Handle menu item clicks
-    customMenu.find(".menu-item").on("click", function (e) {
+    menu.append(
+      mkItem(
+        "trim",
+        "fas fa-compress-alt",
+        game.i18n.localize("CHATTRIMMER.Buttons.TrimChat"),
+      ),
+      mkItem(
+        "new-session",
+        "fas fa-plus-circle",
+        game.i18n.localize("CHATTRIMMER.Buttons.NewSession"),
+      ),
+    );
+
+    menu.addEventListener("click", (e) => {
+      const item = e.target?.closest?.(".menu-item");
+      if (!item || !menu.contains(item)) return;
       e.preventDefault();
       e.stopPropagation();
 
-      const action = $(this).data("action");
+      const action = item.dataset.action;
 
-      // Animate out
-      customMenu.removeClass("show").addClass("hide");
-      setTimeout(() => customMenu.hide(), 150);
+      menu.classList.remove("show");
+      menu.classList.add("hide");
+      setTimeout(() => (menu.style.display = "none"), 150);
 
       switch (action) {
         case "trim":
-          onTrimChat({ preventDefault: () => {} });
+          onTrimChat({ preventDefault: () => { } });
           break;
         case "new-session":
-          onNewSession({ preventDefault: () => {} });
+          onNewSession({ preventDefault: () => { } });
           break;
       }
     });
 
-    // Show menu on right-click
-    trimmerButton.on("contextmenu", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+    document.body.appendChild(menu);
+    return menu;
+  };
 
-      const buttonRect = trimmerButton[0].getBoundingClientRect();
+  const isVisible = (el) => {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden";
+  };
 
-      // Show menu to measure it
-      customMenu
-        .css({ display: "block", visibility: "hidden" })
-        .removeClass("show hide");
-      const menuWidth = customMenu.outerWidth();
-      const menuHeight = customMenu.outerHeight();
-      customMenu.css({ visibility: "visible" });
+  const hideMenu = (menu) => {
+    if (!menu || !isVisible(menu)) return;
+    menu.classList.remove("show");
+    menu.classList.add("hide");
+    setTimeout(() => (menu.style.display = "none"), 150);
+  };
 
-      // Calculate position: above and to the left of button
-      let left = buttonRect.right - menuWidth;
-      let top = buttonRect.top - menuHeight;
+  const trimmerButton = document.createElement("a");
+  trimmerButton.className = "chat-control-icon chat-trimmer-menu-btn";
+  trimmerButton.id = "chat-trimmer-menu-btn";
+  trimmerButton.role = "button";
+  trimmerButton.dataset.tooltip = "Chat Trimmer (Right-click for menu)";
+  trimmerButton.setAttribute("aria-label", "Chat Trimmer");
+  trimmerButton.innerHTML = '<i class="fas fa-archive"></i>';
+  controls.appendChild(trimmerButton);
 
-      // Boundary checks
-      const padding = 5;
+  trimmerButton.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
 
-      if (left < padding) left = padding;
-      if (left + menuWidth > window.innerWidth - padding) {
-        left = window.innerWidth - menuWidth - padding;
-      }
-      if (top < padding) {
-        top = buttonRect.bottom + padding;
-      }
+    const menu = ensureMenu();
+    const buttonRect = trimmerButton.getBoundingClientRect();
 
-      customMenu.css({
-        position: "fixed",
-        left: `${left}px`,
-        top: `${top}px`,
-      });
+    menu.style.position = "fixed";
+    menu.style.display = "block";
+    menu.style.visibility = "hidden";
+    menu.classList.remove("show", "hide");
 
-      // Trigger animation
-      setTimeout(() => customMenu.addClass("show"), 10);
-    });
+    const menuRect = menu.getBoundingClientRect();
+    const menuWidth = menuRect.width;
+    const menuHeight = menuRect.height;
+    menu.style.visibility = "visible";
 
-    // Left-click opens archives directly (most common action)
-    trimmerButton.on("click", (event) => {
-      event.preventDefault();
-      onViewArchives(event);
-    });
+    let left = buttonRect.right - menuWidth;
+    let top = buttonRect.top - menuHeight;
 
-    // Close menu when clicking outside
-    $(document).on("click", (event) => {
-      if (
-        !$(event.target).closest(
-          ".chat-trimmer-dropdown, .chat-trimmer-menu-btn",
-        ).length
-      ) {
-        if (customMenu.is(":visible")) {
-          customMenu.removeClass("show").addClass("hide");
-          setTimeout(() => customMenu.hide(), 150);
-        }
-      }
-    });
+    const padding = 5;
+    if (left < padding) left = padding;
+    if (left + menuWidth > window.innerWidth - padding) {
+      left = window.innerWidth - menuWidth - padding;
+    }
+    if (top < padding) top = buttonRect.bottom + padding;
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+
+    requestAnimationFrame(() => menu.classList.add("show"));
+  });
+
+  trimmerButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    onViewArchives(event);
+  });
+
+  if (!window._chatTrimmerDocClick) {
+    window._chatTrimmerDocClick = (event) => {
+      const menu = document.querySelector("#chat-trimmer-dropdown");
+      const btn = document.querySelector("#chat-trimmer-menu-btn");
+      if (!menu || !btn) return;
+      const target = event.target;
+      if (menu.contains(target) || btn.contains(target)) return;
+      hideMenu(menu);
+    };
+    document.addEventListener("click", window._chatTrimmerDocClick);
   }
 });
 
@@ -580,16 +603,16 @@ Hooks.on("renderSettings", (app, html, data) => {
   // Only GM can manage sessions
   if (!game.user.isGM) return;
 
-  // Ensure html is a jQuery object
-  const $html = $(html);
-  const setupBtn = $html.find('button[data-action="setup"]');
-  if (setupBtn.length) {
-    // Clone and replace to strip existing listeners
-    // Use clone(false) (default) to drop data/events
-    const newBtn = setupBtn.clone().off();
+  const root = html?.[0] ?? html;
+  if (!root?.querySelector) return;
+
+  const setupBtn = root.querySelector('button[data-action="setup"]');
+  if (setupBtn) {
+    // Clone+replace strips existing listeners
+    const newBtn = setupBtn.cloneNode(true);
     setupBtn.replaceWith(newBtn);
 
-    newBtn.click(async (e) => {
+    newBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 

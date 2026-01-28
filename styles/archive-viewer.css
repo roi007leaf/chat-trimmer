@@ -854,7 +854,7 @@
   filter: none !important;
 }
 
-/* Message metadata and card content - ensure dark text, but NOT flavor-text (has dark bg) */
+/* Message metadata and card content - ensure dark text */
 .original-messages-dialog .message-metadata,
 .original-messages-dialog .message-sender:not(.flavor-text),
 .original-messages-dialog .message-sender:not(.flavor-text) *,
@@ -881,14 +881,15 @@
   color: #1a1a1a !important;
 }
 
-/* Flavor text - force light text with dark background for contrast */
-.original-messages-dialog .flavor-text,
-.original-messages-dialog .flavor-text *,
-.original-messages-dialog h4.flavor-text,
-.original-messages-dialog [class*="flavor"] {
-  color: #f0f0f0 !important;
-  background-color: rgba(0, 0, 0, 0.75) !important;
-  padding: 2px 4px !important;
+/* Flavor text + sender labels sometimes come through as white-on-light (PF2e). Force readable. */
+.original-messages-dialog .chat-message .flavor-text,
+.original-messages-dialog .chat-message .flavor-text *,
+.original-messages-dialog .chat-message h4.flavor-text,
+.original-messages-dialog .chat-message [class*="flavor"],
+.original-messages-dialog .chat-message .message-sender,
+.original-messages-dialog .chat-message .message-sender * {
+  color: #1a1a1a !important;
+  text-shadow: none !important;
 }
 
 /* Wrapper for chat message - allow it to render naturally */
