@@ -2,6 +2,12 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [1.0.5] - 2026-01-28
+
+### Changed
+
+- Attempt to fix forge issues
+
 ## [1.0.4] - 2026-01-28
 
 ### Changed

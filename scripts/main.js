@@ -51,23 +51,64 @@ Hooks.on("renderChatLog", (app, html, data) => {
   const root = html?.[0] ?? html;
   if (!root?.querySelector) return;
 
-  const controls = root.querySelector("#chat-controls");
-  if (!controls) return;
+  const doc = root.ownerDocument ?? document;
+  const view = doc.defaultView ?? window;
 
-  // Only init once
+  const getAppRoot = () => {
+    const el = app?.element;
+    if (!el) return null;
+    if (el instanceof HTMLElement) return el;
+    if (typeof el.get === "function") return el.get(0) ?? null;
+    if (typeof el[0] !== "undefined") return el[0] ?? null;
+    return null;
+  };
+
+  const findControls = () => {
+    const selectors = ["#chat-controls", ".chat-controls"];
+
+    for (const sel of selectors) {
+      const direct = root.querySelector(sel);
+      if (direct) return direct;
+    }
+
+    const appRoot = getAppRoot();
+    for (const sel of selectors) {
+      const inApp = appRoot?.querySelector?.(sel);
+      if (inApp) return inApp;
+    }
+
+    for (const sel of selectors) {
+      const inDoc = doc.querySelector?.(sel);
+      if (inDoc) return inDoc;
+    }
+
+    return null;
+  };
+
+  const controls = findControls();
+  if (!controls) {
+    console.log("Chat Trimmer | renderChatLog: chat controls not found", {
+      rootId: root?.id,
+      rootClass: root?.className,
+      appType: app?.constructor?.name,
+      sameDoc: doc === document,
+    });
+    return;
+  }
+
   if (controls.querySelector("#chat-trimmer-menu-btn")) return;
 
   const ensureMenu = () => {
-    let menu = document.querySelector("#chat-trimmer-dropdown");
+    let menu = doc.querySelector("#chat-trimmer-dropdown");
     if (menu) return menu;
 
-    menu = document.createElement("div");
+    menu = doc.createElement("div");
     menu.id = "chat-trimmer-dropdown";
     menu.className = "chat-trimmer-dropdown";
     menu.style.display = "none";
 
     const mkItem = (action, iconClass, label) => {
-      const item = document.createElement("div");
+      const item = doc.createElement("div");
       item.className = "menu-item";
       item.dataset.action = action;
       item.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
@@ -109,13 +150,13 @@ Hooks.on("renderChatLog", (app, html, data) => {
       }
     });
 
-    document.body.appendChild(menu);
+    (doc.body ?? document.body).appendChild(menu);
     return menu;
   };
 
   const isVisible = (el) => {
     if (!el) return false;
-    const style = window.getComputedStyle(el);
+    const style = view.getComputedStyle(el);
     return style.display !== "none" && style.visibility !== "hidden";
   };
 
@@ -126,7 +167,7 @@ Hooks.on("renderChatLog", (app, html, data) => {
     setTimeout(() => (menu.style.display = "none"), 150);
   };
 
-  const trimmerButton = document.createElement("a");
+  const trimmerButton = doc.createElement("a");
   trimmerButton.className = "chat-control-icon chat-trimmer-menu-btn";
   trimmerButton.id = "chat-trimmer-menu-btn";
   trimmerButton.role = "button";
@@ -157,15 +198,16 @@ Hooks.on("renderChatLog", (app, html, data) => {
 
     const padding = 5;
     if (left < padding) left = padding;
-    if (left + menuWidth > window.innerWidth - padding) {
-      left = window.innerWidth - menuWidth - padding;
+    if (left + menuWidth > view.innerWidth - padding) {
+      left = view.innerWidth - menuWidth - padding;
     }
     if (top < padding) top = buttonRect.bottom + padding;
 
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
 
-    requestAnimationFrame(() => menu.classList.add("show"));
+    const raf = view.requestAnimationFrame ?? ((fn) => setTimeout(fn, 0));
+    raf(() => menu.classList.add("show"));
   });
 
   trimmerButton.addEventListener("click", (event) => {
@@ -173,16 +215,16 @@ Hooks.on("renderChatLog", (app, html, data) => {
     onViewArchives(event);
   });
 
-  if (!window._chatTrimmerDocClick) {
-    window._chatTrimmerDocClick = (event) => {
-      const menu = document.querySelector("#chat-trimmer-dropdown");
-      const btn = document.querySelector("#chat-trimmer-menu-btn");
+  if (!view._chatTrimmerDocClick) {
+    view._chatTrimmerDocClick = (event) => {
+      const menu = doc.querySelector("#chat-trimmer-dropdown");
+      const btn = doc.querySelector("#chat-trimmer-menu-btn");
       if (!menu || !btn) return;
       const target = event.target;
       if (menu.contains(target) || btn.contains(target)) return;
       hideMenu(menu);
     };
-    document.addEventListener("click", window._chatTrimmerDocClick);
+    doc.addEventListener("click", view._chatTrimmerDocClick);
   }
 });
 
