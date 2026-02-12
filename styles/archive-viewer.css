@@ -893,13 +893,13 @@
 }
 
 /* Wrapper for chat message - allow it to render naturally */
-.chat-message-wrapper {
+.original-messages-dialog .chat-message-wrapper {
   display: flex;
   flex-direction: column;
 }
 
 /* Ensure chat messages render properly in the dialog */
-.chat-message-wrapper .chat-message {
+.original-messages-dialog .chat-message-wrapper .chat-message {
   margin: 0;
   border-radius: 4px;
   box-shadow: 0 2px 4px var(--color-shadow-primary);
@@ -1034,14 +1034,14 @@
   font-size: 14px;
 }
 
-.message-list {
+.original-messages-dialog .message-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 10px;
 }
 
-.original-message {
+.original-messages-dialog .original-message {
   padding: 10px;
   background: var(--color-cool-2);
   border: 1px solid var(--color-border-dark-primary);
@@ -1049,7 +1049,7 @@
   border-radius: 3px;
 }
 
-.message-header {
+.original-messages-dialog .message-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5px;
@@ -1057,12 +1057,12 @@
   color: var(--color-text-dark-primary);
 }
 
-.timestamp {
+.original-messages-dialog .timestamp {
   color: var(--color-text-dark-inactive);
   font-size: 11px;
 }
 
-.message-content {
+.original-messages-dialog .message-content {
   font-size: 13px;
   line-height: 1.4;
   color: var(--color-text-dark-primary);

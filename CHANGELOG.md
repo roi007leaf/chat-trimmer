@@ -2,6 +2,16 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [1.0.6] - 2026-02-12
+
+### Fixed
+
+- **CSS Namespace Conflicts**: Fixed archive viewer CSS selectors that were causing conflicts with Foundry VTT's chat interface
+  - Namespaced `.message-header` selector under `.original-messages-dialog` to prevent chat header styling conflicts
+  - Namespaced `.message-list`, `.original-message`, `.timestamp`, `.message-content` selectors
+  - Namespaced `.chat-message-wrapper` selector
+  - All archive viewer CSS is now properly scoped to prevent global conflicts
+
 ## [1.0.5] - 2026-01-28
 
 ### Changed
