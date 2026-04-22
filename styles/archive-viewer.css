@@ -1787,17 +1787,32 @@
 .chat-trimmer-message-viewer .window-content {
   padding: 0.75rem;
   background: var(--color-cool-2);
+  overflow: auto;
+}
+
+.chat-trimmer-message-viewer-content {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem;
 }
 
 .chat-trimmer-message-viewer-content .chat-message-wrapper {
   overflow: auto;
+  width: min(100%, 420px);
 }
 
 .chat-trimmer-message-viewer-content .chat-message {
   margin: 0;
-  max-width: none;
+  width: 100%;
+  max-width: 420px;
 }
 
 .chat-trimmer-message-viewer-content .message-header {
+  display: flex;
+  justify-content: space-between;
   align-items: flex-start;
+}
+
+.chat-trimmer-message-viewer-content .message-content {
+  overflow-wrap: anywhere;
 }

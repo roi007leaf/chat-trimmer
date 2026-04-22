@@ -63,14 +63,44 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
     },
   };
 
+  _getScrollContainer() {
+    return (
+      this.element?.querySelector(".archive-entries") ||
+      this.element?.querySelector(".summary-content") ||
+      this.element?.querySelector(".archive-body") ||
+      null
+    );
+  }
+
+  _preserveScrollPosition() {
+    const scrollContainer = this._getScrollContainer();
+    if (scrollContainer) {
+      this._scrollPosition = {
+        selector: scrollContainer.classList.contains("archive-entries")
+          ? ".archive-entries"
+          : scrollContainer.classList.contains("summary-content")
+            ? ".summary-content"
+            : ".archive-body",
+        top: scrollContainer.scrollTop,
+      };
+    }
+  }
+
   _onRender(context, options) {
     super._onRender(context, options);
 
     // Restore scroll position if it was preserved
     if (this._scrollPosition !== null) {
-      const archiveBody = this.element.querySelector(".archive-body");
-      if (archiveBody) {
-        archiveBody.scrollTop = this._scrollPosition;
+      const { selector, top } =
+        typeof this._scrollPosition === "object"
+          ? this._scrollPosition
+          : { selector: ".archive-body", top: this._scrollPosition };
+      const scrollContainer =
+        this.element.querySelector(selector) || this._getScrollContainer();
+      if (scrollContainer) {
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTop = top;
+        });
       }
       this._scrollPosition = null; // Clear after restoring
     }
@@ -476,11 +506,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
     } else {
       this.expandedEntries.add(entryId);
     }
-    // Preserve scroll position before re-rendering
-    const archiveBody = this.element.querySelector(".archive-body");
-    if (archiveBody) {
-      this._scrollPosition = archiveBody.scrollTop;
-    }
+    this._preserveScrollPosition();
     this.render();
   }
 
@@ -488,22 +514,14 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
     event.preventDefault();
     event.stopPropagation();
     this.summaryCollapsed = !this.summaryCollapsed;
-    // Preserve scroll position before re-rendering
-    const archiveBody = this.element.querySelector(".archive-body");
-    if (archiveBody) {
-      this._scrollPosition = archiveBody.scrollTop;
-    }
+    this._preserveScrollPosition();
     this.render();
   }
 
   async onToggleViewMode(event, target) {
     event.preventDefault();
     this.viewMode = this.viewMode === "full" ? "summary" : "full";
-    // Preserve scroll position before re-rendering
-    const archiveBody = this.element.querySelector(".archive-body");
-    if (archiveBody) {
-      this._scrollPosition = archiveBody.scrollTop;
-    }
+    this._preserveScrollPosition();
     this.render();
   }
 

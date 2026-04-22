@@ -2,6 +2,18 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [2.0.1] - 2026-04-22
+
+### Fixed
+
+- **Archive viewer scroll preservation**:
+  - Fixed expanding archive entries jumping scrollbar back to top
+  - Scroll position is now preserved against the actual active scroll container during viewer re-render
+
+- **Original message viewer presentation**:
+  - Tightened original-message dialog layout to better match normal chat-card width
+  - Improved message centering and header alignment to reduce stretched/janky card rendering
+
 ## [2.0.0] - 2026-04-22
 
 ### Added
