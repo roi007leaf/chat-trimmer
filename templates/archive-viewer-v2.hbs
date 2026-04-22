@@ -128,10 +128,36 @@
         <div class="archive-entries">
             {{#each filteredEntries}}
             <div class="archive-entry {{this.category}}" data-entry-id="{{this.id}}">
+                <button type="button" class="entry-toggle" data-action="toggleEntry" aria-expanded="{{#if this.expanded}}true{{else}}false{{/if}}" {{#unless this.hasDetails}}disabled{{/unless}}>
+                    <i class="fas fa-chevron-right toggle-icon {{#if this.expanded}}expanded{{/if}}"></i>
+                </button>
                 <span class="entry-icon">{{this.icon}}</span>
-                <div class="entry-header-content">
-                    {{#if this.speaker}}<div class="entry-speaker">{{this.speaker}}</div>{{/if}}
-                    <span class="entry-summary">{{#if this.displaySummary}}{{removeDuplicateSpeaker this.displaySummary this.speaker}}{{else}}{{removeDuplicateSpeaker this.displayText this.speaker}}{{/if}}</span>
+                <div class="entry-main">
+                    <div class="entry-header-content">
+                        {{#if this.speaker}}<div class="entry-speaker">{{this.speaker}}</div>{{/if}}
+                        <span class="entry-summary">{{#if this.displaySummary}}{{removeDuplicateSpeaker this.displaySummary this.speaker}}{{else}}{{removeDuplicateSpeaker this.displayText this.speaker}}{{/if}}</span>
+                    </div>
+                    {{#if this.expanded}}
+                    <div class="entry-details">
+                        {{#if this.detailText}}
+                        <div class="entry-detail-text">{{this.detailText}}</div>
+                        {{/if}}
+                        {{#if this.hasSubEntries}}
+                        <div class="cluster-sub-entries">
+                            {{#each this.subEntries}}
+                            <div class="sub-entry" data-entry-id="{{this.id}}">
+                                <div class="sub-entry-content">
+                                    <span class="sub-entry-text">{{this.displayText}}</span>
+                                </div>
+                                <button type="button" class="view-original-sub" data-action="viewOriginal">
+                                    <i class="fas fa-eye"></i>{{localize "CHATTRIMMER.Buttons.ViewOriginal"}}
+                                </button>
+                            </div>
+                            {{/each}}
+                        </div>
+                        {{/if}}
+                    </div>
+                    {{/if}}
                 </div>
                 <span class="entry-timestamp">{{formatTime this.timestamp}}</span>
                 <button class="view-original-btn" data-action="viewOriginal" data-tooltip="View Original">

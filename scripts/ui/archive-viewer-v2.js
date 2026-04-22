@@ -3,6 +3,7 @@
  * Modern Foundry ApplicationV2 implementation
  */
 import { MessageViewerDialog } from "./dialogs.js";
+import { MessageParser } from "../utils/message-parser.js";
 
 export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2,
@@ -335,6 +336,14 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         rollButtonsHtml: rollButtonsHtml,
         subEntries: subEntries,
         hasSubEntries: subEntries.length > 0,
+        detailText: MessageParser.stripHTML(
+          e.content || e.originalMessage?.content || "",
+        ).trim(),
+        hasDetails:
+          subEntries.length > 0 ||
+          MessageParser.stripHTML(e.content || e.originalMessage?.content || "")
+            .trim()
+            .length > 0,
       };
     });
 

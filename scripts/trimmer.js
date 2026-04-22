@@ -386,6 +386,16 @@ export class ChatTrimmer {
     const content = contentLower ?? msg.content.toLowerCase();
     const flavor = msg.flavor?.toLowerCase() || "";
     const combined = content + " " + flavor; // Check both content and flavor
+    const plainText = MessageParser.stripHTML(
+      `${msg.flavor || ""} ${msg.content || ""}`,
+    );
+
+    if (
+      msg.flags?.["monks-combat-details"] ||
+      (!msg.rolls?.length && /\b(round|turn)\s+\d+\b/i.test(plainText))
+    ) {
+      return false;
+    }
 
     // Filter out PF2e "Current Conditions" status summary messages
     if (combined.includes("current conditions")) {
@@ -851,6 +861,9 @@ export class ChatTrimmer {
     // Extract target information from various sources
     const targetName = this.extractTargetName(msg);
     const targetSuffix = targetName ? ` → ${targetName}` : "";
+    const combinedText = MessageParser.stripHTML(
+      `${msg.flavor || ""} ${msg.content || ""}`,
+    ).toLowerCase();
 
     // Check for PF2e strike/attack rolls first
     if (
@@ -949,6 +962,21 @@ export class ChatTrimmer {
       // Get speaker name
       const speaker =
         msg.speaker?.alias || msg.speaker?.actor || msg.user?.name || "Unknown";
+
+      return `⚔️ ${speaker}: ${label}${targetSuffix}${rollTotal}`;
+    }
+
+    if (
+      combinedText.includes("damage taken") ||
+      combinedText.includes("damage applied") ||
+      combinedText.includes("reduced to 0 hp")
+    ) {
+      const actionName = msg.flags?.pf2e?.origin?.item?.name;
+      const speaker =
+        msg.speaker?.alias || msg.speaker?.actor || msg.user?.name || "Unknown";
+      const rollTotal =
+        msg.rolls && msg.rolls.length > 0 ? ` (${msg.rolls[0].total})` : "";
+      const label = actionName ? `${actionName} Damage` : "Damage Taken";
 
       return `⚔️ ${speaker}: ${label}${targetSuffix}${rollTotal}`;
     }

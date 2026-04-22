@@ -86,6 +86,15 @@ export class SettingsPanel {
             default: false,
         });
 
+        game.settings.register("chat-trimmer", "disableAutoTrimDuringEncounter", {
+            name: game.i18n.localize("CHATTRIMMER.Settings.DisableAutoTrimDuringEncounter"),
+            hint: game.i18n.localize("CHATTRIMMER.Settings.DisableAutoTrimDuringEncounterHint"),
+            scope: "world",
+            config: true,
+            type: Boolean,
+            default: false,
+        });
+
         // Compression settings
         game.settings.register("chat-trimmer", "enableCombatCompression", {
             name: game.i18n.localize("CHATTRIMMER.Settings.EnableCombatCompression"),

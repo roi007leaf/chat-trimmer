@@ -54,7 +54,7 @@ export class MessageViewerDialog extends foundry.applications.api.HandlebarsAppl
 
   static DEFAULT_OPTIONS = {
     id: "chat-trimmer-message-viewer",
-    classes: ["chat-trimmer-dialog", "original-messages-dialog"],
+    classes: ["chat-trimmer-dialog", "chat-trimmer-message-viewer"],
     tag: "div",
     window: {
       title:

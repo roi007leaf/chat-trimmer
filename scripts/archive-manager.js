@@ -641,6 +641,21 @@ export class ArchiveManager {
       const lowerText = displayText.toLowerCase();
       const lowerContent = content.toLowerCase();
       const combinedText = `${lowerText} ${lowerContent} ${flavor}`;
+      const pushKeyEvent = (data) =>
+        keyEvents.push({
+          ...data,
+          entryId: entry.id,
+        });
+
+      if (
+        entry.originalMessage?.flags?.["monks-combat-details"] ||
+        (!entry.originalMessage?.rolls?.length &&
+          /\b(round|turn)\s+\d+\b/i.test(
+            `${displayText} ${content} ${entry.originalMessage?.flavor || ""}`,
+          ))
+      ) {
+        return;
+      }
 
       // PRIORITY: Check if entry is explicitly marked as a key event
       if (entry.isKeyEvent === true) {
@@ -770,13 +785,12 @@ export class ArchiveManager {
           .trim();
         if (cleanText.length > 5) {
           // At least 5 characters of actual text
-          keyEvents.push({
+          pushKeyEvent({
             timestamp: entry.timestamp,
             icon: icon,
             text: eventText,
             importance: importance,
             eventType: eventType, // Add event type for CSS styling
-            entryId: entry.id, // Store entry ID so we can jump to it
           });
         }
 
@@ -836,7 +850,7 @@ export class ArchiveManager {
 
             const damageText =
               damageAmount !== null ? ` (took ${damageAmount} damage)` : "";
-            keyEvents.push({
+            pushKeyEvent({
               timestamp: entry.timestamp,
               icon: "💀",
               text: `${targetActor.name} was reduced to 0 HP!${damageText}`,
@@ -878,7 +892,7 @@ export class ArchiveManager {
 
           const damageText =
             damageAmount !== null ? ` (took ${damageAmount} damage)` : "";
-          keyEvents.push({
+          pushKeyEvent({
             timestamp: entry.timestamp,
             icon: "💀",
             text: `${actorName} was reduced to 0 HP!${damageText}`,
@@ -889,7 +903,7 @@ export class ArchiveManager {
 
       // Attack rolls
       if (entry.category === "combat" && lowerText.includes("attack")) {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "⚔️",
           text: displayText,
@@ -904,7 +918,7 @@ export class ArchiveManager {
         entry.originalMessage.rolls.length > 0
       ) {
         if (combinedText.includes("success") || combinedText.includes("hit")) {
-          keyEvents.push({
+          pushKeyEvent({
             timestamp: entry.timestamp,
             icon: "💥",
             text: `${entry.speaker}: Critical Hit!`,
@@ -917,7 +931,7 @@ export class ArchiveManager {
           combinedText.includes("miss") ||
           combinedText.includes("fumble")
         ) {
-          keyEvents.push({
+          pushKeyEvent({
             timestamp: entry.timestamp,
             icon: "💢",
             text: `${entry.speaker}: Critical Failure`,
@@ -929,7 +943,7 @@ export class ArchiveManager {
       else if (entry.category === "combat" && lowerText.includes("damage")) {
         const damageMatch = displayText.match(/\((\d+)\)/);
         if (damageMatch && parseInt(damageMatch[1]) >= 20) {
-          keyEvents.push({
+          pushKeyEvent({
             timestamp: entry.timestamp,
             icon: "💥",
             text: displayText,
@@ -942,7 +956,7 @@ export class ArchiveManager {
         lowerText.includes("level") &&
         (lowerText.includes("up") || lowerContent.includes("level up"))
       ) {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "⭐",
           text: `${entry.speaker}: Leveled Up`,
@@ -956,7 +970,7 @@ export class ArchiveManager {
         lowerText.includes("unconscious") ||
         lowerText.includes("dying")
       ) {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "💀",
           text: displayText,
@@ -965,7 +979,7 @@ export class ArchiveManager {
       }
       // Healing
       else if (lowerText.includes("heal") && entry.category === "healing") {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "❤️",
           text: displayText,
@@ -981,7 +995,7 @@ export class ArchiveManager {
           lowerText.includes("treasure") ||
           lowerText.includes("gold"))
       ) {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "📦",
           text: displayText,
@@ -996,7 +1010,7 @@ export class ArchiveManager {
         entry.originalMessage?.rolls &&
         entry.originalMessage.rolls.length > 0
       ) {
-        keyEvents.push({
+        pushKeyEvent({
           timestamp: entry.timestamp,
           icon: "✨",
           text: displayText,

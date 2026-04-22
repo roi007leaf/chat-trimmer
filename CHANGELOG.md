@@ -2,6 +2,49 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [2.0.0] - 2026-04-22
+
+### Added
+
+- **Encounter-safe auto-trim option**: Added a new setting to disable automatic trimming during active encounters
+  - Prevents mid-combat auto-archive from deleting source chat messages while players still use popped-out spell or action cards
+  - Manual trimming still works when this safeguard is enabled
+
+- **Regression test coverage**:
+  - Added tests for encounter auto-trim suppression
+  - Added tests for key event entry linking
+  - Added tests for damage message labeling
+  - Added tests for archive viewer expandable entry rendering
+
+### Fixed
+
+- **Original message viewer rendering**:
+  - Reworked message viewer scoping to avoid aggressive CSS overrides breaking chat card layout
+  - Fixed header placement issues in archived/original message popouts
+  - Preserved native styling more reliably for traits, roll buttons, damage types, and inline content
+
+- **Key event navigation**:
+  - Generated key events now keep a valid `entryId` reference
+  - Fixed "entry not found" warnings when opening key event damage rolls or reduced-to-0-HP events
+
+- **Monks Combat Details compatibility**:
+  - Filtered round/turn marker messages out of key events
+  - Prevents round separators from showing as clickable key events with missing original-message warnings
+
+- **Damage message categorization**:
+  - Fixed PF2e damage application / "Damage Taken" style messages being displayed as spell casts
+  - Damage summaries now render with damage-oriented labels instead of spell-only labels
+
+- **Collapsed archive entry expansion**:
+  - Restored expandable archive entries in the viewer UI
+  - Added rendered detail sections and sub-entry display for clustered/archived content
+
+### Changed
+
+- **Compatibility**:
+  - Updated package version to `2.0.0`
+  - Verified compatibility updated for Foundry VTT v14 while keeping minimum compatibility at v13
+
 ## [1.0.6] - 2026-02-12
 
 ### Fixed

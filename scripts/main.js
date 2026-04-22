@@ -6,6 +6,10 @@ import { ArchiveManager } from "./archive-manager.js";
 import { ChatTrimmer } from "./trimmer.js";
 import { ArchiveViewerV2 } from "./ui/archive-viewer-v2.js";
 import { SettingsPanel } from "./ui/settings-panel.js";
+import {
+  hasActiveCombatEncounter,
+  shouldSkipAutoTrim,
+} from "./utils/auto-trim.js";
 
 // Module globals
 let chatTrimmer;
@@ -234,6 +238,20 @@ Hooks.on("renderChatLog", (app, html, data) => {
 Hooks.on("createChatMessage", (message, options, userId) => {
   // Check if we should auto-trim based on message count
   const autoTrimMethod = game.settings.get("chat-trimmer", "autoTrimMethod");
+  const disableDuringEncounter = game.settings.get(
+    "chat-trimmer",
+    "disableAutoTrimDuringEncounter",
+  );
+
+  if (
+    shouldSkipAutoTrim({
+      autoTrimMethod,
+      disableDuringEncounter,
+      hasActiveCombat: hasActiveCombatEncounter(),
+    })
+  ) {
+    return;
+  }
 
   if (autoTrimMethod === "messageCount") {
     const messagesToKeep = game.settings.get("chat-trimmer", "messagesToKeep");
@@ -399,8 +417,23 @@ function onViewArchives(event) {
  */
 async function checkAutoTrim() {
   const autoTrimMethod = game.settings.get("chat-trimmer", "autoTrimMethod");
+  const disableDuringEncounter = game.settings.get(
+    "chat-trimmer",
+    "disableAutoTrimDuringEncounter",
+  );
 
   if (autoTrimMethod === "disabled") return;
+
+  if (
+    shouldSkipAutoTrim({
+      autoTrimMethod,
+      disableDuringEncounter,
+      hasActiveCombat: hasActiveCombatEncounter(),
+    })
+  ) {
+    console.log("Chat Trimmer | Auto-trim skipped during active encounter");
+    return;
+  }
 
   const messageCount = game.messages.size;
 
