@@ -6,6 +6,7 @@ import { ArchiveManager } from "./archive-manager.js";
 import { ChatTrimmer } from "./trimmer.js";
 import { ArchiveViewerV2 } from "./ui/archive-viewer-v2.js";
 import { SettingsPanel } from "./ui/settings-panel.js";
+import { setCurrentSession, startNextSession } from "./sessions.js";
 import {
   hasActiveCombatEncounter,
   shouldSkipAutoTrim,
@@ -15,6 +16,22 @@ import {
 let chatTrimmer;
 let archiveManager;
 let archiveViewer;
+
+Hooks.on("updateSetting", (setting) => {
+  if (
+    setting.key === "chat-trimmer.hideArchivesFromPlayers" &&
+    !game.user.isGM
+  ) {
+    archiveViewer?.close();
+    if (archiveViewer) archiveViewer.entryMap = new Map();
+  }
+});
+Hooks.on("updateUser", (user) => {
+  if (user.id === game.user.id && !game.user.isGM) {
+    archiveViewer?.close();
+    if (archiveViewer) archiveViewer.entryMap = new Map();
+  }
+});
 
 /**
  * Initialize module
@@ -120,6 +137,7 @@ Hooks.on("renderChatLog", (app, html, data) => {
     };
 
     menu.append(
+      mkItem("set-session", "fas fa-edit", "Set Current Session Number"),
       mkItem(
         "trim",
         "fas fa-compress-alt",
@@ -145,11 +163,14 @@ Hooks.on("renderChatLog", (app, html, data) => {
       setTimeout(() => (menu.style.display = "none"), 150);
 
       switch (action) {
+        case "set-session":
+          onSetSession();
+          break;
         case "trim":
-          onTrimChat({ preventDefault: () => { } });
+          onTrimChat({ preventDefault: () => {} });
           break;
         case "new-session":
-          onNewSession({ preventDefault: () => { } });
+          onNewSession({ preventDefault: () => {} });
           break;
       }
     });
@@ -333,16 +354,6 @@ async function onNewSession(event) {
   );
   let currentNumber = game.settings.get("chat-trimmer", "currentSessionNumber");
 
-  // Check archive index for the actual highest session number
-  const archiveIndex = game.settings.get("chat-trimmer", "archiveIndex") || [];
-  if (archiveIndex.length > 0) {
-    const highestArchiveSession = Math.max(
-      ...archiveIndex.map((a) => a.sessionNumber || 0),
-    );
-    // Use whichever is higher: the setting or the actual archives
-    currentNumber = Math.max(currentNumber, highestArchiveSession);
-  }
-
   // AppV2 Dialog
   new foundry.applications.api.DialogV2({
     window: {
@@ -366,21 +377,12 @@ async function onNewSession(event) {
           const newNumber = currentNumber + 1;
           const newName = `Session ${newNumber}`;
 
-          await game.settings.set(
-            "chat-trimmer",
-            "currentSessionNumber",
-            newNumber,
-          );
-          await game.settings.set(
-            "chat-trimmer",
-            "currentSessionName",
-            newName,
-          );
-          await game.settings.set(
-            "chat-trimmer",
-            "currentSessionStartTime",
-            Date.now(),
-          );
+          try {
+            await startNextSession(chatTrimmer, newNumber);
+          } catch (error) {
+            ui.notifications.error(error.message);
+            return;
+          }
 
           ui.notifications.info(
             game.i18n.format("CHATTRIMMER.Notifications.NewSessionStarted", {
@@ -403,6 +405,13 @@ async function onNewSession(event) {
  */
 function onViewArchives(event) {
   event.preventDefault();
+  if (
+    !game.user.isGM &&
+    game.settings.get("chat-trimmer", "hideArchivesFromPlayers")
+  ) {
+    ui.notifications.warn("Archives are restricted to GMs.");
+    return;
+  }
 
   // Open archive viewer using ApplicationV2
   if (!archiveViewer) {
@@ -715,8 +724,12 @@ Hooks.on("renderSettings", (app, html, data) => {
             default: true,
             callback: async () => {
               // Increment session name
-              await incrementSessionName(currentSession);
-              game.shutDown();
+              try {
+                await incrementSessionName();
+                game.shutDown();
+              } catch (error) {
+                ui.notifications.error(error.message);
+              }
             },
           },
           {
@@ -741,16 +754,37 @@ Hooks.on("renderSettings", (app, html, data) => {
 /**
  * Helper to increment session name
  */
-async function incrementSessionName(current) {
-  let nextName = current;
-  const match = current.match(/Session (\d+)/i);
-  if (match) {
-    const num = parseInt(match[1]) + 1;
-    nextName = `Session ${num}`;
-  } else {
-    nextName = `${current} (Next)`;
-  }
+async function incrementSessionName() {
+  await startNextSession(
+    chatTrimmer,
+    game.settings.get("chat-trimmer", "currentSessionNumber") + 1,
+  );
+}
 
-  await game.settings.set("chat-trimmer", "currentSessionName", nextName);
-  ui.notifications.info(`Chat Trimmer | Session advanced to: ${nextName}`);
+function onSetSession() {
+  if (!game.user.isGM) return;
+  new foundry.applications.api.DialogV2({
+    window: { title: "Set Current Session Number" },
+    content: `<form><label>Session number <input name="sessionNumber" type="number" min="1" step="1" value="${game.settings.get("chat-trimmer", "currentSessionNumber")}" required></label><p>Updates the current session label without archiving chat or starting a new session.</p></form>`,
+    buttons: [
+      {
+        action: "save",
+        label: "Save",
+        default: true,
+        callback: async (event, button, dialog) => {
+          try {
+            await setCurrentSession(
+              Number(
+                dialog.element.querySelector('[name="sessionNumber"]').value,
+              ),
+            );
+            ui.notifications.info("Current session number updated.");
+          } catch (error) {
+            ui.notifications.error(error.message);
+          }
+        },
+      },
+      { action: "cancel", label: "Cancel" },
+    ],
+  }).render({ force: true });
 }

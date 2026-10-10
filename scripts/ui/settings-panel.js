@@ -3,6 +3,16 @@
  */
 export class SettingsPanel {
     static register() {
+        game.settings.register("chat-trimmer", "archiveOnNewSession", {
+            name: "Archive chat when starting a new session",
+            hint: "Archive all remaining chat before advancing the session. Requires archiving enabled; ignores Messages to Keep.",
+            scope: "world", config: true, type: Boolean, default: false,
+        });
+        game.settings.register("chat-trimmer", "hideArchivesFromPlayers", {
+            name: "Hide archives from players",
+            hint: "Restricts the archive viewer to GMs. External JSON files can still be accessed by URL; use unshared Journal storage for sensitive archives.",
+            scope: "world", config: true, type: Boolean, default: true,
+        });
         // Auto-trim settings
         game.settings.register("chat-trimmer", "autoTrimMethod", {
             name: game.i18n.localize("CHATTRIMMER.Settings.AutoTrimMethod"),

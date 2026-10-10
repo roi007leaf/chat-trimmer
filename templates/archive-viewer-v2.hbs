@@ -9,12 +9,17 @@
                 </option>
                 {{/each}}
             </select>
+            {{#if isGM}}
+            <button type="button" data-action="editSessionNumber" data-tooltip="Edit Archived Session Number" aria-label="Edit Archived Session Number">
+                <i class="fas fa-edit"></i>
+            </button>
             <button type="button" class="delete-current-archive" data-action="deleteCurrentArchive" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteCurrentArchive'}}">
                 <i class="fas fa-trash"></i>
             </button>
             <button type="button" class="delete-all-archives" data-action="deleteAllArchives" data-tooltip="{{localize 'CHATTRIMMER.Buttons.DeleteAllArchives'}}">
                 <i class="fas fa-trash-alt"></i>
             </button>
+            {{/if}}
         </div>
     </div>
 

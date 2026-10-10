@@ -12,6 +12,7 @@ export class ArchiveManager {
    * Initialize the archive folder
    */
   async initialize() {
+    if (!game.user.isGM) return null;
     // Find or create the Chat Archives folder
     this.folder = game.folders.find(
       (f) => f.name === this.folderName && f.type === "JournalEntry",
@@ -156,7 +157,7 @@ export class ArchiveManager {
     // Handle external storage (No Journal)
     if (storageType === "external") {
       try {
-        const filename = `archive-${sessionNumber}.json`;
+        const filename = `archive-${sessionNumber}-${foundry.utils.randomID()}.json`;
         // Store full data in file
         const fileData = {
           ...metadata,
@@ -255,7 +256,9 @@ export class ArchiveManager {
     const storageType = archive.getFlag("chat-trimmer", "storageType");
 
     // Get existing entries
-    const existingEntries = await this.getArchiveEntries(archive);
+    const existingEntries = await this.getArchiveEntries(archive, {
+      strict: true,
+    });
 
     // Merge new entries with existing (maintain chronological order)
     const allEntries = [...existingEntries, ...data.entries];
@@ -333,7 +336,7 @@ export class ArchiveManager {
       const filePath = archive.getFlag("chat-trimmer", "filePath");
       if (!filePath) {
         console.error("Archive Manager | External archive has no file path");
-        return archive;
+        throw new Error("External archive has no file path.");
       }
 
       try {
@@ -367,7 +370,7 @@ export class ArchiveManager {
           err,
         );
         ui.notifications.error("Failed to update archive file.");
-        return archive;
+        throw err;
       }
     }
 
@@ -460,7 +463,12 @@ export class ArchiveManager {
   /**
    * Retrieve entries for an archive (handling specific storage types)
    */
-  async getArchiveEntries(archive) {
+  async getArchiveEntries(archive, { strict = false } = {}) {
+    if (
+      !game.user.isGM &&
+      game.settings.get("chat-trimmer", "hideArchivesFromPlayers")
+    )
+      return [];
     if (!archive) return [];
 
     const type = archive.getFlag("chat-trimmer", "storageType");
@@ -479,6 +487,7 @@ export class ArchiveManager {
       } catch (e) {
         console.error("Archive Manager | Error fetching external archive:", e);
         ui.notifications.error(`Could not load archive file: ${filePath}`);
+        if (strict) throw e;
         return [];
       }
     }
@@ -1077,11 +1086,18 @@ export class ArchiveManager {
    * Get all archives
    */
   async getAllArchives() {
+    if (
+      !game.user.isGM &&
+      game.settings.get("chat-trimmer", "hideArchivesFromPlayers")
+    )
+      return [];
     await this.initialize();
 
     // Get Journals
     const journals = game.journal.filter(
-      (j) => j.getFlag("chat-trimmer", "isArchive") === true,
+      (j) =>
+        j.getFlag("chat-trimmer", "isArchive") === true &&
+        (game.user.isGM || j.visible),
     );
 
     // Get Virtual Archives from Settings
@@ -1099,6 +1115,57 @@ export class ArchiveManager {
     return archives.find(
       (a) => a.getFlag("chat-trimmer", "sessionNumber") === sessionNumber,
     );
+  }
+
+  /** Renumber every archive segment belonging to the selected session. */
+  async renumberSession(sessionName, number) {
+    if (!game.user.isGM) throw new Error("Only GMs can manage sessions.");
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw new Error("Session number must be a positive whole number.");
+    }
+    const archives = await this.getAllArchives();
+    const targets = archives.filter(
+      (a) =>
+        (a.getFlag("chat-trimmer", "sessionName") || a.name) === sessionName,
+    );
+    if (!targets.length) throw new Error("No session selected.");
+    const name = `Session ${number}`;
+    if (
+      archives.some(
+        (a) =>
+          !targets.includes(a) &&
+          (a.getFlag("chat-trimmer", "sessionNumber") === number ||
+            a.getFlag("chat-trimmer", "sessionName") === name),
+      )
+    ) {
+      throw new Error("Another archived session already uses this number.");
+    }
+    const index = (game.settings.get("chat-trimmer", "archiveIndex") || []).map(
+      (entry) => ({ ...entry }),
+    );
+    for (const archive of targets) {
+      if (archive.getFlag("chat-trimmer", "storageType") === "external") {
+        const record = index.find((a) => a.id === archive.id);
+        if (!record) throw new Error("Archive index entry missing.");
+        // Keep file path stable: renumbering must never overwrite another file.
+        const response = await fetch(record.filePath);
+        if (!response.ok) throw new Error("Could not load archive file.");
+        const data = await response.json();
+        await this._saveToExternalFile(
+          { ...data, sessionNumber: number, sessionName: name },
+          record.filePath.split("/").pop(),
+        );
+        Object.assign(record, { sessionNumber: number, sessionName: name });
+      } else {
+        await archive.update({
+          "flags.chat-trimmer.sessionNumber": number,
+          "flags.chat-trimmer.sessionName": name,
+        });
+      }
+    }
+    await game.settings.set("chat-trimmer", "archiveIndex", index);
+    this.invalidateIndexCache();
+    return name;
   }
 
   /**

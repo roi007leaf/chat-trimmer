@@ -2,6 +2,23 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [2.1.0] - 2026-10-10
+
+### Added
+
+- Set the current session number directly from the Chat Trimmer context menu.
+- Edit archived session numbers from the archive viewer. Updates every segment of the selected session and rejects numbers used by another archived session.
+- Optional automatic archiving of all remaining chat before starting a new session, including messages normally retained by Messages to Keep.
+- Hide archives from players setting, enabled by default, with GM-only archive viewer access and lookup. External JSON files remain accessible by URL; sensitive archives require unshared Journal storage.
+
+### Fixed
+
+- Ending a session through the setup prompt now advances both the session number and name, resets the start time, and follows the automatic session archiving setting.
+- Starting a new session follows the configured current session number instead of overriding it with the highest archive number.
+- Failed archive reads or uploads no longer allow trimming to delete source messages or advance the session as if archiving succeeded.
+- New external archive files use unique names to prevent overwriting archives after session renumbering.
+- Player archive access respects journal visibility; viewer management controls are restricted to GMs and cached viewer entries are cleared when access changes.
+
 ## [2.0.1] - 2026-04-22
 
 ### Fixed

@@ -6,6 +6,13 @@
 
 # Chat Trimmer
 
+## Session controls and archive access
+
+- Right-click the Chat Trimmer button → **Set Current Session Number** to match your campaign's session count. This changes the label without starting a new session.
+- In the archive viewer, select a session and click the pencil to edit its number. All archive segments for that session are updated. Numbers already used by another archived session are rejected.
+- Enable **Archive chat when starting a new session** in module settings to archive all remaining messages before advancing, including messages normally kept by **Messages to Keep**. Archiving must be enabled. Failed archiving leaves the session unchanged. Ending a session through the setup prompt uses the same behavior.
+- **Hide archives from players** defaults to enabled and restricts the module's viewer and archive lookup to GMs. Disabling it restores player access. External JSON files are static files and remain accessible by direct URL; for sensitive archives, use Journal storage and keep journal entries and their pages unshared. This setting does not revoke existing journal sharing or remove old external files.
+
 A Foundry VTT module that automatically compresses chat history using intelligent pattern recognition. Reduces memory usage by 80-90% while preserving important information in searchable, organized archives. **No LLM or external services required!**
 
 ## 🎯 Problem Statement

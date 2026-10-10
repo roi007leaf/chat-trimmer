@@ -42,6 +42,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
       closeOnSubmit: false,
     },
     actions: {
+      editSessionNumber: ArchiveViewerV2.prototype.onEditSessionNumber,
       toggleEntry: ArchiveViewerV2.prototype.onToggleEntry,
       toggleSummary: ArchiveViewerV2.prototype.onToggleSummary,
       toggleViewMode: ArchiveViewerV2.prototype.onToggleViewMode,
@@ -70,6 +71,43 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
       this.element?.querySelector(".archive-body") ||
       null
     );
+  }
+
+  async onEditSessionNumber() {
+    if (!game.user.isGM || !this.currentSession) return;
+    const archives = await this.archiveManager.getAllArchives();
+    const selectedSession = this.currentSession;
+    const archive = archives.find(
+      (a) =>
+        (a.getFlag("chat-trimmer", "sessionName") || a.name) ===
+        selectedSession,
+    );
+    new foundry.applications.api.DialogV2({
+      window: { title: "Edit Archived Session Number" },
+      content: `<form><label>Session number <input name="sessionNumber" type="number" min="1" step="1" value="${archive?.getFlag("chat-trimmer", "sessionNumber") || 1}" required></label></form>`,
+      buttons: [
+        {
+          action: "save",
+          label: "Save",
+          default: true,
+          callback: async (event, button, dialog) => {
+            try {
+              this.currentSession = await this.archiveManager.renumberSession(
+                selectedSession,
+                Number(
+                  dialog.element.querySelector('[name="sessionNumber"]').value,
+                ),
+              );
+              this.currentPage = 1;
+              this.render();
+            } catch (error) {
+              ui.notifications.error(error.message);
+            }
+          },
+        },
+        { action: "cancel", label: "Cancel" },
+      ],
+    }).render({ force: true });
   }
 
   _preserveScrollPosition() {
@@ -144,6 +182,19 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
+    if (
+      !game.user.isGM &&
+      game.settings.get("chat-trimmer", "hideArchivesFromPlayers")
+    ) {
+      this.entryMap = new Map();
+      this.currentSession = null;
+      return {
+        ...context,
+        hasArchives: false,
+        showArchiveBody: false,
+        isGM: false,
+      };
+    }
 
     console.log("Archive Viewer | Getting data...");
 
@@ -371,9 +422,9 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
         ).trim(),
         hasDetails:
           subEntries.length > 0 ||
-          MessageParser.stripHTML(e.content || e.originalMessage?.content || "")
-            .trim()
-            .length > 0,
+          MessageParser.stripHTML(
+            e.content || e.originalMessage?.content || "",
+          ).trim().length > 0,
       };
     });
 
@@ -467,6 +518,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
 
     return {
       ...context,
+      isGM: game.user.isGM,
       sessionOptions,
       currentArchive,
       currentSession: this.currentSession,
@@ -672,7 +724,7 @@ export class ArchiveViewerV2 extends foundry.applications.api.HandlebarsApplicat
               const message = new MessageClass(entry.originalMessage);
               const multiplier = Number(
                 target.dataset.multiplier ||
-                (actionType === "apply-healing" ? -1 : 1),
+                  (actionType === "apply-healing" ? -1 : 1),
               );
 
               // 1. Try PF2e Toolbelt (support multiple API locations)
