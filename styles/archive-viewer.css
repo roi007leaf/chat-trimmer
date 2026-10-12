@@ -1610,9 +1610,29 @@
   font-weight: 700;
 }
 
+/* Allow native and module controls to wrap in narrow sidebars and popouts. */
+.chat-sidebar #chat-controls.chat-trimmer-toolbar,
+.chat-trimmer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-sidebar #chat-controls.chat-trimmer-toolbar .control-buttons,
+.chat-trimmer-toolbar .control-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 /* Chat Trimmer Menu Button */
 .chat-control-icon.chat-trimmer-menu-btn {
   position: relative;
+  flex: 0 0 36px;
+  box-sizing: border-box;
   width: 36px;
   height: 36px;
   display: flex;

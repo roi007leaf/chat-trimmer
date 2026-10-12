@@ -81,6 +81,12 @@ jobs:
       - name: Run linting
         run: npm run lint --if-present
 
+      - name: Install browser for layout regression tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npm test
+
 
   # Build (runs on PRs and releases, but release steps only on releases)
   build:

@@ -7,6 +7,7 @@ import { ChatTrimmer } from "./trimmer.js";
 import { ArchiveViewerV2 } from "./ui/archive-viewer-v2.js";
 import { SettingsPanel } from "./ui/settings-panel.js";
 import { setCurrentSession, startNextSession } from "./sessions.js";
+import { installChatCleanup } from "./utils/chat-cleanup.js";
 import {
   hasActiveCombatEncounter,
   shouldSkipAutoTrim,
@@ -51,6 +52,7 @@ Hooks.once("init", () => {
  */
 Hooks.once("ready", async () => {
   console.log("Chat Trimmer | Ready");
+  installChatCleanup();
 
   // Initialize managers
   chatTrimmer = new ChatTrimmer();
@@ -118,6 +120,9 @@ Hooks.on("renderChatLog", (app, html, data) => {
   }
 
   if (controls.querySelector("#chat-trimmer-menu-btn")) return;
+
+  // Extra module controls must participate in layout instead of crowding one row.
+  controls.classList.add("chat-trimmer-toolbar");
 
   const ensureMenu = () => {
     let menu = doc.querySelector("#chat-trimmer-dropdown");
@@ -199,7 +204,8 @@ Hooks.on("renderChatLog", (app, html, data) => {
   trimmerButton.dataset.tooltip = "Chat Trimmer (Right-click for menu)";
   trimmerButton.setAttribute("aria-label", "Chat Trimmer");
   trimmerButton.innerHTML = '<i class="fas fa-archive"></i>';
-  controls.appendChild(trimmerButton);
+  const buttonGroup = controls.querySelector(".control-buttons") ?? controls;
+  buttonGroup.appendChild(trimmerButton);
 
   trimmerButton.addEventListener("contextmenu", (event) => {
     event.preventDefault();

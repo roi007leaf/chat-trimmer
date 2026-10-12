@@ -6,6 +6,10 @@
 
 # Chat Trimmer
 
+## Clear Chat Log responsiveness
+
+While Chat Trimmer is enabled, Foundry's trash-can **Clear Chat Log** button deletes messages in batches of 10, with 100 ms pauses between batches. This spreads deletion hooks and chat animations over smaller requests to reduce long stalls. Large logs may take longer to finish clearing. The normal confirmation and document permissions apply; messages posted after cleanup starts remain in chat. Clear Chat Log still deletes messages without archiving them.
+
 ## Session controls and archive access
 
 - Right-click the Chat Trimmer button → **Set Current Session Number** to match your campaign's session count. This changes the label without starting a new session.
@@ -341,6 +345,14 @@ Contributions are welcome! Areas for improvement:
 - Performance optimizations
 - Localization (additional languages)
 - Bug fixes and testing
+
+Run regression tests (including Chromium toolbar layout and click checks):
+
+```sh
+npm ci
+npx playwright install chromium
+npm test
+```
 
 ## 📄 License
 

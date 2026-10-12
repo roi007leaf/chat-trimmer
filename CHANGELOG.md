@@ -2,6 +2,18 @@
 
 All notable changes to the Chat Trimmer & Summarizer module will be documented in this file.
 
+## [2.1.1] - 2026-10-12
+
+### Fixed
+
+- Reduce long game stalls when using Foundry's Clear Chat Log button by deleting 10 messages per batch with short pauses between batches. Keep the normal confirmation and document permissions, and preserve messages posted after cleanup starts.
+- Keep chat toolbar controls visible and clickable in narrow sidebars and popout windows, including alongside other modules' buttons.
+
+### Tests
+
+- Add cleanup regressions for batching, cancellation, concurrent clicks, failed deletions, and messages posted during cleanup.
+- Add browser layout regressions for GM and player chat controls; run them in release CI.
+
 ## [2.1.0] - 2026-10-10
 
 ### Added
